@@ -1,21 +1,36 @@
 #!/usr/bin/env python3
 
-# import random
+import random
 import sys
+
+class Node:
+    def __init__(self) -> None:
+        self.parent = self
+        self.rank = 0
+        self.distance = 0
+        self.color = "white"
+        self.wall = 15
 
 
 class MazeGenerator:
     def __init__(self, config: dict) -> None:
         for key, value in config.items():
             setattr(self, key, value)
+        self.maze = genereate_maze()
 
     def imprimir(self):
         print(self.output_file)
 
+    def krustal(raw_maze):
+        for (u, v) in ramdom.shuffle(raw_maze)
+
+
 # def parse_config(file: str) -> dict(int, int, tuplent, int):
 
 
-def validate_config() -> dict:
+
+
+def validate_config() -> dict[str, int | bool | str | tuple[int, int]]:
     error_msg: str = (
         "Error while reading config.text"
         "\nPlease open the file and write the values in the format:"
@@ -27,7 +42,8 @@ def validate_config() -> dict:
         "\nPERFECT=<bool>"
         "\nSEED=<int>"
     )
-    dict_graph = {}
+    dict_raw: dict[str, str] = {}
+    dict_graph: dict[str, int | bool | str | tuple[int, int]] = {}
     try:
         with open("config.txt", "r") as f:
             for line in f:
@@ -35,31 +51,29 @@ def validate_config() -> dict:
                     continue
                 key, value = line.split("=", 1)
                 key = key.lower()
-                dict_graph[key] = value
+                dict_raw[key] = value
     except Exception:
         print(error_msg)
         sys.exit(1)
     try:
-        dict_graph["width"] = int(dict_graph["width"])
-        dict_graph["height"] = int(dict_graph["height"])
-        dict_graph["perfect"] = bool(dict_graph["perfect"])
-        dict_graph["seed"] = int(dict_graph["seed"])
-        if not dict_graph["output_file"].endswith(".txt\n"):
+        dict_graph["width"] = int(dict_raw["width"])
+        dict_graph["height"] = int(dict_raw["height"])
+        dict_graph["perfect"] = bool(dict_raw["perfect"])
+        dict_graph["seed"] = int(dict_raw["seed"])
+        if not dict_raw["output_file"].endswith(".txt\n"):
+            dict_graph["output_file"] = dict_raw["output_file"]
             print(error_msg)
             sys.exit(1)
-        entry = dict_graph["entry"].split(",")
-        exit_maze = dict_graph["exit"].split(",")
+        entry = dict_raw["entry"].split(",")
+        exit_maze = dict_raw["exit"].split(",")
         if len(entry) != 2 or len(exit_maze) != 2:
             print(error_msg)
             sys.exit(1)
-        entry[0], entry[1] = int(entry[0]), int(entry[1])
-        exit_maze[0], exit_maze[1] = int(exit_maze[0]), int(exit_maze[1])
-        dict_graph["entry"] = (entry[0], entry[1])
-        dict_graph["exit"] = (exit_maze[0], exit_maze[1])
-        exit_maze[0], exit_maze[1] = int(exit_maze[0]), int(exit_maze[1])
+        dict_graph["entry"] = (int(entry[0]), int(entry[1]))
+        dict_graph["exit"] = (int(exit_maze[0]), int(entry[1]))
         for key in dict_graph.keys():
-            if not(key == "widht" or "height" or "entry" or "exit"
-                   or "output_file" or "perfect" or "seed"):
+            if not (key == "widht" or "height" or "entry" or "exit"
+                    or "output_file" or "perfect" or "seed"):
                 print(error_msg)
                 sys.exit(1)
 
@@ -70,7 +84,7 @@ def validate_config() -> dict:
     except Exception:
         print(error_msg)
         sys.exit(1)
-    return(dict_graph)
+    return (dict_graph)
 
 
 if __name__ == "__main__":
