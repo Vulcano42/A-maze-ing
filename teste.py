@@ -3,6 +3,11 @@
 import random
 import sys
 
+# height == números de linhas
+# widht == número de colunas
+# mst == minimum spanning tree
+
+
 class Node:
     def __init__(self) -> None:
         self.parent = self
@@ -18,11 +23,44 @@ class MazeGenerator:
             setattr(self, key, value)
         self.maze = genereate_maze()
 
-    def imprimir(self):
-        print(self.output_file)
+    # def imprimir(self):
+    #     print(self.output_file)
 
-    def krustal(raw_maze):
-        for (u, v) in ramdom.shuffle(raw_maze)
+    def union(x, y):
+        link(find_set(x), find_set(y))
+
+    def link(x, y):
+        if x.rank > y.rank:
+            y.parent = x
+        else:
+            x.parent = y
+            if x.rank == y.rank:
+                y.rank += 1
+
+    def find_set(x):
+        if x.parent != x:
+            x.parent = find_set(x.parent)
+        return x.parent
+
+    def kruskal_perfect(self):
+        maze = [[Node() for _ in range(self.width)] for _ in range(self.height)]
+        adjacency_list = []
+        mst = []
+        for i in range(self.height):
+            for j in range(self.width - 1):
+                adjacency_list.append((maze[i][j], maze[i][j + 1]))
+        for i in range(self.width):
+            for j in range(self.height - 1):
+                adjacency_list.append((maze[i][j], maze[i][j + 1]))
+        random.shuffle(adjacency_list)
+        for t in adjacency_list:
+            if find_set(t[0]) != find_set(t[1]):
+                # quebrar_parede(cords)
+                mst.append((t[0], t[1]))
+                union(t[0], t[1])
+
+
+
 
 
 # def parse_config(file: str) -> dict(int, int, tuplent, int):
