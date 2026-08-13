@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+# from abc import ABC, abstractmethod
 import random
 import sys
 
@@ -9,27 +10,18 @@ import sys
 
 
 class Node:
-    def __init__(self) -> None:
+    def __init__(self, x, y) -> None:
         self.parent = self
         self.rank = 0
         self.distance = 0
         self.color = "white"
         self.wall = 15
+        self.cords = (x, y)
 
 
-class MazeGenerator:
-    def __init__(self, config: dict) -> None:
-        for key, value in config.items():
-            setattr(self, key, value)
-        self.maze = genereate_maze()
-
-    # def imprimir(self):
-    #     print(self.output_file)
-
-    def union(x, y):
-        link(find_set(x), find_set(y))
-
-    def link(x, y):
+class Kruskal():
+    @staticmethod
+    def link(x: Node, y: Node) -> None:
         if x.rank > y.rank:
             y.parent = x
         else:
@@ -37,35 +29,68 @@ class MazeGenerator:
             if x.rank == y.rank:
                 y.rank += 1
 
-    def find_set(x):
+    @staticmethod
+    def find_set(x: Node) -> Node:
         if x.parent != x:
-            x.parent = find_set(x.parent)
+            x.parent = Kruskal.find_set(x.parent)
         return x.parent
 
-    def kruskal_perfect(self):
-        maze = [[Node() for _ in range(self.width)] for _ in range(self.height)]
+    @staticmethod
+    def union(x: Node, y: Node) -> None:
+        Kruskal.link(Kruskal.find_set(x), Kruskal.find_set(y))
+
+    @staticmethod
+    def kruskal_perfect(maze: list[list[Node]], height: int, width: int) -> list[tuple[Node, Node]]:
+        # maze = [[Node(j, i) for i in range(self.width)] for j in range(self.height)]
         adjacency_list = []
         mst = []
-        for i in range(self.height):
-            for j in range(self.width - 1):
+        for i in range(height):
+            for j in range(width - 1):
                 adjacency_list.append((maze[i][j], maze[i][j + 1]))
-        for i in range(self.width):
-            for j in range(self.height - 1):
+        for i in range(width):
+            for j in range(height - 1):
                 adjacency_list.append((maze[i][j], maze[i][j + 1]))
         random.shuffle(adjacency_list)
         for t in adjacency_list:
-            if find_set(t[0]) != find_set(t[1]):
-                # quebrar_parede(cords)
+            if Kruskal.find_set(t[0]) != Kruskal.find_set(t[1]):
+                if t[0].cords[0] > t[1].cords[0]:
+                    t[0].wall = t[0].wall - 2**0
+                    t[1].wall = t[1].wall - 2**2
+                if t[0].cords[0] < t[1].cords[0]:
+                    t[0].wall = t[0].wall - 2**2
+                    t[1].wall = t[1].wall - 2**0
+                if t[0].cords[1] > t[1].cords[1]:
+                    t[0].wall = t[0].wall - 2**3
+                    t[1].wall = t[1].wall - 2**1
+                if t[0].cords[1] < t[1].cords[1]:
+                    t[0].wall = t[0].wall - 2**1
+                    t[1].wall = t[1].wall - 2**3
                 mst.append((t[0], t[1]))
-                union(t[0], t[1])
+                Kruskal.union(t[0], t[1])
+        return mst
 
+    def kruskal_imperfect():
+        # Em teoria é criamos uma mst, e depois tendo a mst iteramos ela para buscar celulas celulas
+        # com 3 paredes e selecionar uma parede de forma aleatorio e eliminar ela, mas existem limitações
+        # como não podemos criar 3x3 area aberta e não pode retirar os cantos do labirinto
+
+
+
+class MazeGenerator:
+    def __init__(self, config: dict) -> None:
+        for key, value in config.items():
+            setattr(self, key, value)
+        self.maze: list[list[Node]] = []
+
+    # def imprimir(self):
+    #     print(self.output_file)
+    def genereate_maze(self):
+        self.maze = [[Node(j, i) for i in range(self.width)] for j in range(self.height)]
 
 
 
 
 # def parse_config(file: str) -> dict(int, int, tuplent, int):
-
-
 
 
 def validate_config() -> dict[str, int | bool | str | tuple[int, int]]:
