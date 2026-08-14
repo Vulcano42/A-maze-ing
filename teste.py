@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-# from abc import ABC, abstractmethod
 import random
-import sys
+from typing import Any
 
 # height == números de linhas
 # widht == número de colunas
@@ -10,16 +9,64 @@ import sys
 
 
 class Node:
-    def __init__(self, x, y) -> None:
+    def __init__(self, x: int, y: int) -> None:
         self.parent = self
         self.rank = 0
-        self.distance = 0
-        self.color = "white"
+        self.distance = -1
+        self.visited = "white"
         self.wall = 15
         self.cords = (x, y)
         self.fix = False
 
 
+class Bfs():
+    @staticmethod
+    def short_path(
+        maze,
+        entry: tuple[int, int],
+        exit: tuple[int, int]
+    ) -> list[Node]:
+
+        start_node = maze[entry[0]][entry[1]]
+        visited: set[Node] = {start_node}
+
+        queue: list = [(start_node, [start_node])]
+        max_y = len(maze)
+        max_x = len(maze[0])
+
+        while queue:
+            current, path = queue.pop(0)
+
+            if current.cords == exit:
+                return path
+
+            y, x = current.cords
+
+            if (current.wall & 1) == 0 and y > 0: # 1 == 0001 Norte
+                neighbor = maze[y - 1][x]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+            if (current.wall & 2) == 0 and x < max_x - 1: # 2 == 0010 Leste
+                neighbor = maze[y][x + 1]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+            if (current.wall & 4) == 0 and y < max_y - 1: # 4 == 0100 Sul
+                neighbor = maze[y + 1][x]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+            if (current.wall & 8) == 0 and x > 0: # 8 == 1000 Oeste
+                neighbor = maze[y][x - 1]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+        return []
 
 
 class Kruskal():
@@ -43,8 +90,11 @@ class Kruskal():
         Kruskal.link(Kruskal.find_set(x), Kruskal.find_set(y))
 
     @staticmethod
-    def create_edge(maze: list[list[Node]], height: int, width: int) -> list[tuple[Node, Node]]:
-        adjacency_list = []
+    def create_edge(
+        maze: list[list[Node]],
+        height: int, width: int
+    ) -> list[tuple[Node, Node]]:
+        adjacency_list: list = []
         random.shuffle(adjacency_list)
         for i in range(height):
             for j in range(width - 1):
@@ -56,13 +106,17 @@ class Kruskal():
         return adjacency_list
 
     @staticmethod
-    def kruskal_perfect(maze: list[list[Node]], height: int, width: int) -> list[tuple[Node, Node]]:
-        # maze = [[Node(j, i) for i in range(self.width)] for j in range(self.height)]
+    def kruskal_perfect(
+        maze: list[list[Node]],
+        height: int, width: int
+    ) -> list[tuple[Node, Node]]:
         adjacency_list = Kruskal.create_edge(maze, height, width)
         mst = []
         for t in adjacency_list:
-            if (Kruskal.find_set(t[0]) != Kruskal.find_set(t[1])
-                and not (t[0].fix or t[1].fix)):
+            if (
+                Kruskal.find_set(t[0]) != Kruskal.find_set(t[1])
+                and not (t[0].fix or t[1].fix)
+            ):
                 if t[0].cords[0] > t[1].cords[0]:
                     t[0].wall = t[0].wall - 2**0
                     t[1].wall = t[1].wall - 2**2
@@ -80,40 +134,66 @@ class Kruskal():
         return mst
 
     # def kruskal_imperfect():
-        # Em teoria é criamos uma mst, e depois tendo a mst iteramos ela para buscar celulas celulas
-        # com 3 paredes e selecionar uma parede de forma aleatorio e eliminar ela, mas existem limitações
-        # como não podemos criar 3x3 area aberta e não pode retirar os cantos do labirinto
+        # Em teoria é criamos uma mst
+        # depois tendo a mst iteramos ela para buscar celulas celulas
+        # com 3 paredes e selecionar uma parede de forma aleatorio
+        # e eliminar ela, mas existem limitações
+        # como não podemos criar 3x3 area aberta
+        # e não pode retirar os cantos do labirinto
 
 
 class MazeGenerator:
-    def __init__(self, config: dict) -> None:
-        for key, value in config.items():
-            setattr(self, key, value)
+    def __init__(
+        self,
+    ) -> None:
+        self.dict_graph: dict[str, Any] = {}
+        self.validate_config()
+        self.height = self.dict_graph["height"]
+        self.width = self.dict_graph["width"]
+        self.entry = self.dict_graph["entry"]
+        self.exit_maze = self.dict_graph["exit"]
+        self.seed = self.dict_graph["seed"]
+        self.perfect = self.dict_graph["perfect"]
+        self.output_file = self.dict_graph["output_file"]
         self.maze: list[list[Node]] = []
+        self.path = ""
 
     # def imprimir(self):
     #     print(self.output_file)
-    def genereate_maze(self):
-        self.maze = [[Node(j, i) for i in range(self.width)] for j in range(self.height)]
-        self.maze[9][1].wall = 0
+    def genereate_maze(self) -> None:
+        self.validate_config()
+        self.maze = [
+            [Node(j, i) for i in range(self.dict_graph["width"])]
+            for j in range(self.dict_graph["height"])
+        ]
         self.logo()
-        # mst = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
-        # print(maze)
-        # for i in range(self.height):
-        #     for j in range(self.width):
-        #         print(self.maze[i][j].wall, end=" ")
-        #     print()
-        # # print(mst)
-        #
-        # print("--------------")
+        mst = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+        path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
+        path_str = ""
+        for i in range(len(path) - 1):
+            if path[i].cords[0] > path[i + 1].cords[0]:
+                path_str += "N"
+            if path[i].cords[0] < path[i + 1].cords[0]:
+                path_str += "S"
+            if path[i].cords[1] > path[i + 1].cords[1]:
+                path_str += "O"
+            if path[i].cords[1] < path[i + 1].cords[1]:
+                path_str += "L"
+        self.path = path_str
+
         for i in range(self.height):
             for j in range(self.width):
-                print(f"{self.maze[i][j].wall:x}", end=" ")
+                print(f"{self.maze[i][j].wall:x}", end="")
             print()
+        print()
+        print(f"{self.entry[0]},{self.entry[1]}\n{self.exit_maze[0]},{self.exit_maze[1]}")
+        print(path_str)
+
+
 
     def logo(self) -> None:
-        mid_h = int(self.height / 2)
-        mid_w = int(self.width / 2)
+        mid_h = int(self.dict_graph["height"] / 2)
+        mid_w = int(self.dict_graph["width"] / 2)
         self.maze[mid_h][mid_w - 1].fix = True
         self.maze[mid_h][mid_w - 2].fix = True
         self.maze[mid_h][mid_w - 3].fix = True
@@ -134,107 +214,145 @@ class MazeGenerator:
         self.maze[mid_h + 2][mid_w + 2].fix = True
         self.maze[mid_h + 2][mid_w + 3].fix = True
 
-        self.maze[mid_h][mid_w - 1].wall = 0
-        self.maze[mid_h][mid_w - 2].wall = 0
-        self.maze[mid_h][mid_w - 3].wall = 0
-        self.maze[mid_h - 1][mid_w - 3].wall = 0
-        self.maze[mid_h - 2][mid_w - 3].wall = 0
-        self.maze[mid_h + 1][mid_w - 1].wall = 0
-        self.maze[mid_h + 2][mid_w - 1].wall = 0
-        self.maze[mid_h][mid_w + 1].wall = 0
-        self.maze[mid_h][mid_w + 2].wall = 0
-        self.maze[mid_h][mid_w + 3].wall = 0
-        self.maze[mid_h - 1][mid_w + 3].wall = 0
-        self.maze[mid_h - 2][mid_w + 3].wall = 0
-        self.maze[mid_h - 2][mid_w + 2].wall = 0
-        self.maze[mid_h - 2][mid_w + 1].wall = 0
-        self.maze[mid_h + 1][mid_w + 1].wall = 0
-        self.maze[mid_h + 2][mid_w + 1].wall = 0
-        self.maze[mid_h + 2][mid_w + 2].wall = 0
-        self.maze[mid_h + 2][mid_w + 3].wall = 0
+        if self.maze[self.entry[0] - 1][self.entry[1] - 1].fix == True:
+            print("Maze entry is the same as 42 logo")
+            exit(1)
 
-
-
+        if self.maze[self.exit_maze[0] - 1][self.exit_maze[1] - 1].fix == True:
+            print("Maze exit is the same as 42 logo")
+            exit(1)
 
 # def parse_config(file: str) -> dict(int, int, tuplent, int):
 
 
-def validate_config() -> dict[str, int | bool | str | tuple[int, int]]:
-    error_msg: str = (
-        "Error while reading config.text"
-        "\nPlease open the file and write the values in the format:"
-        "\nWIDTH=<int>0>"
-        "\nHEIGHT=<int>0>"
-        "\nENTRY=<int,int>"
-        "\nEXIT=<int,int>"
-        "\nOUTPUT_FILE=<*.txt>"
-        "\nPERFECT=<bool>"
-        "\nSEED=<int>"
-    )
-    dict_raw: dict[str, str] = {}
-    dict_graph: dict[str, int | bool | str | tuple[int, int]] = {}
-    try:
-        with open("config.txt", "r") as f:
-            for line in f:
-                if line == "\n":
-                    continue
-                key, value = line.split("=", 1)
-                key = key.lower()
-                value = value.strip()
-                dict_raw[key] = value
-    except Exception:
-        print(error_msg)
-        sys.exit(1)
-    try:
-        dict_graph["width"] = int(dict_raw["width"])
-        dict_graph["height"] = int(dict_raw["height"])
-        dict_graph["perfect"] = bool(dict_raw["perfect"])
-        dict_graph["seed"] = int(dict_raw["seed"])
-        dict_graph["output_file"] = dict_raw["output_file"]
-        if not dict_raw["output_file"].endswith(".txt"):
-            print(error_msg)
-            sys.exit(1)
-        entry = dict_raw["entry"].split(",")
-        exit_maze = dict_raw["exit"].split(",")
-        if len(entry) != 2 or len(exit_maze) != 2:
-            print(error_msg)
-            sys.exit(1)
-        dict_graph["entry"] = (int(entry[0]), int(entry[1]))
-        dict_graph["exit"] = (int(exit_maze[0]), int(entry[1]))
-        if not (
-            int(entry[0]) <= dict_graph["height"]
-            and int(entry[1]) <= dict_graph["width"]
-            and int(exit_maze[0]) <= dict_graph["height"]
-            and int(exit_maze[1]) <= dict_graph["width"]
-            and int(entry[0]) >= 0
-            and int(entry[1]) >= 0
-            and int(exit_maze[0])
-            and int(exit_maze[1]) >= 0
-        ):
-            print(error_msg)
-            sys.exit(1)
-        for key in dict_graph.keys():
-            if not (key == "widht" or "height" or "entry" or "exit"
-                    or "output_file" or "perfect" or "seed"):
+    def validate_config(self) -> None:
+        error_msg: str = (
+            "Error while reading config.txt"
+            "\nPlease open the file and write the values in the format:"
+            "\nWIDTH=<int>0>"
+            "\nHEIGHT=<int>0>"
+            "\nENTRY=<int,int>"
+            "\nEXIT=<int,int>"
+            "\nOUTPUT_FILE=<*.txt>"
+            "\nPERFECT=<bool>"
+            "\nSEED=<int>"
+        )
+        dict_raw: dict[str, str] = {}
+        try:
+            with open("config.txt", "r") as f:
+                for line in f:
+                    if line == "\n":
+                        continue
+                    key, value = line.split("=", 1)
+                    key = key.lower()
+                    value = value.strip()
+                    dict_raw[key] = value
+        except Exception as e:
+            print(error_msg, e)
+            exit(1)
+        try:
+            self.dict_graph["width"] = int(dict_raw["width"])
+            self.dict_graph["height"] = int(dict_raw["height"])
+            self.dict_graph["perfect"] = bool(dict_raw["perfect"])
+            self.dict_graph["seed"] = int(dict_raw["seed"])
+            self.dict_graph["output_file"] = dict_raw["output_file"]
+            if not dict_raw["output_file"].endswith(".txt"):
                 print(error_msg)
-                sys.exit(1)
+                exit(1)
+            entry = dict_raw["entry"].split(",")
+            exit_maze = dict_raw["exit"].split(",")
+            if len(entry) != 2 or len(exit_maze) != 2:
+                print(error_msg)
+                exit(1)
+            self.dict_graph["entry"] = (int(entry[0]), int(entry[1]))
+            self.dict_graph["exit"] = (int(exit_maze[0]), int(exit_maze[1]))
+            if not (
+                int(entry[0]) <= int(self.dict_graph["height"])
+                and int(entry[1]) <= int(self.dict_graph["width"])
+                and int(exit_maze[0]) <= int(self.dict_graph["height"])
+                and int(exit_maze[1]) <= int(self.dict_graph["width"])
+                and int(entry[0]) >= 0
+                and int(entry[1]) >= 0
+                and int(exit_maze[0])
+                and int(exit_maze[1]) >= 0
+            ):
+                print(error_msg)
+                exit(1)
+            for key in self.dict_graph.keys():
+                if not (key == "widht" or "height" or "entry" or "exit"
+                        or "output_file" or "perfect" or "seed"):
+                    print(error_msg)
+                    exit(1)
 
-        if len(dict_graph.keys()) != 7:
-            print(dict_graph)
-            print("mais de 7")
-            print(error_msg)
-            sys.exit(1)
-    except Exception:
-        print(error_msg)
-        sys.exit(1)
-    return (dict_graph)
+            if len(self.dict_graph.keys()) != 7:
+                print(error_msg)
+                exit(1)
+        except Exception as e:
+            print(error_msg, e)
+            exit(1)
 
-
+# def print_hex_maze(hex_map: list[str]) -> None:
+#     if not hex_map:
+#         return
+#
+#     # Desenha o teto (Norte) apenas da primeira linha
+#     top_border: str = "+"
+#     for char in hex_map[0]:
+#         val: int = int(char, 16)
+#         # Verifica Bit 0 (Norte)
+#         top_border += "---+" if (val & 1) else "   +"
+#     print(top_border)
+#
+#     for line in hex_map:
+#         # A parede Oeste (Esquerda) só é checada na primeira célula da linha
+#         first_val: int = int(line[0], 16)
+#         row_str: str = "|" if (first_val & 8) else " "
+#
+#         bottom_str: str = "+"
+#
+#         for char in line:
+#             val = int(char, 16)
+#
+#             # O centro da célula (podemos colocar um " " ou um "X" se for o caminho)
+#             cell_center: str = "   "
+#
+#             # Verifica Bit 1 (Leste / Direita)
+#             row_str += f"{cell_center}|" if (val & 2) else f"{cell_center} "
+#
+#             # Verifica Bit 2 (Sul / Baixo)
+#             bottom_str += "---+" if (val & 4) else "   +"
+#
+#         print(row_str)
+#         print(bottom_str)
+#
+# if __name__ == "__main__":
+#     # O seu dump hexadecimal
+#     my_maze: list[str] = [
+#         "957bd11555791539513b",
+#         "8556d2e9113aad2ad686",
+#         "8553d2d6eec2ebc053eb",
+#         "83b83c17d53a9456d056",
+#         "ac6aa92d3baead513ebb",
+#         "87baeac78045297e8782",
+#         "ed0454116ad10039016a",
+#         "bd2bbd6c3ebeee86ec7a",
+#         "8542a93f816fffc397d6",
+#         "ebd006efec557f928557",
+#         "d03ea97fffbfffaa83d3",
+#         "d68386d13fafd56c6856",
+#         "bd6a87beafafffd15413",
+#         "c152838103abbbd453ee",
+#         "b87c6c2eec06847b9413",
+#         "c6bbb90397c3839003ae",
+#         "b94042ac07d06aeeaac3",
+#         "82d43aebad56b87beed2",
+#         "aad56812c53bc6941152",
+#         "ec557eeed5447d6d6c7e",
+#     ]
+#
+#     print_hex_maze(my_maze)
+#
+#
 if __name__ == "__main__":
-    config = validate_config()
-    maze = MazeGenerator(config)
+    maze = MazeGenerator()
     maze.genereate_maze()
-    # maze = MazeGenerator()
-    #
-    # height = 7
-    # width = 9
