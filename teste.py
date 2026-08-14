@@ -132,6 +132,52 @@ class Kruskal():
                 mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
         return mst
+# 1110
+# 1101
+# 1011
+# 0111
+    @staticmethod
+    def kruskal_imperfect(
+        maze: list[list[Node]],
+        height: int, width: int
+    ) -> list[tuple[Node, Node]]:
+        mst = Kruskal.kruskal_perfect(maze, height, width)
+        max_y = len(maze)
+        max_x = len(maze[0])
+        for i in range(max_y):
+            for j in range(max_x):
+                print(f"{maze[i][j].wall:x}", end="")
+            print()
+        print("--------")
+
+        for y in range(max_y):
+            for x in range(max_x):
+                options = []
+                if maze[y][x].wall.bit_count() == 3 and not maze[y][x].fix:
+                    if maze[y][x].wall & 1 == 1 and y > 0 and not maze[y - 1][x].fix:
+                        options.append(maze[y - 1][x])
+                    if maze[y][x].wall & 2 == 1 and x < max_x and not maze[y][x + 1].fix:
+                        options.append(maze[y][x + 1])
+                    if maze[y][x].wall & 4 == 1 and y < max_y and not maze[y + 1][x].fix:
+                        options.append((maze[y + 1][x]))
+                    if maze[y][x].wall & 8 == 1 and x > 0 and not maze[y][x - 1].fix:
+                        options.append(maze[y][x - 1])
+                    if options:
+                        neighbor = random.choice(options)
+                        if maze[y][x].cords[0] > neighbor.cords[0]:
+                            maze[y][x].wall = maze[y][x].wall - 2**0
+                            neighbor.wall = neighbor.wall - 2**2
+                        if maze[y][x].cords[0] < neighbor.cords[0]:
+                            maze[y][x].wall = maze[y][x].wall - 2**2
+                            neighbor.wall = neighbor.wall - 2**0
+                        if maze[y][x].cords[1] > neighbor.cords[1]:
+                            maze[y][x].wall = maze[y][x].wall - 2**3
+                            neighbor.wall = neighbor.wall - 2**1
+                        if maze[y][x].cords[1] < neighbor.cords[1]:
+                            maze[y][x].wall = maze[y][x].wall - 2**1
+                            neighbor.wall = neighbor.wall - 2**3
+
+
 
     # def kruskal_imperfect():
         # Em teoria é criamos uma mst
@@ -167,7 +213,10 @@ class MazeGenerator:
             for j in range(self.dict_graph["height"])
         ]
         self.logo()
-        mst = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+        if self.perfect:
+            mst = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+        else:
+            mst = Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
         path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
         path_str = ""
         for i in range(len(path) - 1):
@@ -188,6 +237,7 @@ class MazeGenerator:
         print()
         print(f"{self.entry[0]},{self.entry[1]}\n{self.exit_maze[0]},{self.exit_maze[1]}")
         print(path_str)
+
 
 
 
@@ -235,27 +285,35 @@ class MazeGenerator:
             "\nEXIT=<int,int>"
             "\nOUTPUT_FILE=<*.txt>"
             "\nPERFECT=<bool>"
-            "\nSEED=<int>"
+            "\nSEED=<int> or leave it blank"
         )
         dict_raw: dict[str, str] = {}
         try:
             with open("config.txt", "r") as f:
                 for line in f:
-                    if line == "\n":
+                    if line == "\n" or line.strip().startswith("#"):
                         continue
                     key, value = line.split("=", 1)
                     key = key.lower()
                     value = value.strip()
                     dict_raw[key] = value
-        except Exception as e:
-            print(error_msg, e)
+        except Exception:
+            print(error_msg)
             exit(1)
         try:
             self.dict_graph["width"] = int(dict_raw["width"])
             self.dict_graph["height"] = int(dict_raw["height"])
-            self.dict_graph["perfect"] = bool(dict_raw["perfect"])
-            self.dict_graph["seed"] = int(dict_raw["seed"])
+            self.dict_graph["perfect"] = False
             self.dict_graph["output_file"] = dict_raw["output_file"]
+            if dict_raw["seed"]:
+                self.dict_graph["seed"] = int(dict_raw["seed"])
+                random.seed(self.dict_graph["seed"])
+            else:
+                self.dict_graph["seed"] = "random"
+            # self.dict_graph["seed"] = "random"
+            # if dict_raw["seed"] != "random":
+            #     self.dict_graph["seed"] = int(dict_raw["seed"])
+            #     random.seed(dict_graph[])
             if not dict_raw["output_file"].endswith(".txt"):
                 print(error_msg)
                 exit(1)
@@ -287,9 +345,26 @@ class MazeGenerator:
             if len(self.dict_graph.keys()) != 7:
                 print(error_msg)
                 exit(1)
-        except Exception as e:
-            print(error_msg, e)
+        except Exception:
+            print(error_msg)
             exit(1)
+
+    def save_file(self) -> None:
+        try:
+            with open(self.output_file, "w") as file:
+                for row in range(self.height):
+                    for node in range(self.width):
+                        file.write(f"{self.maze[row][node].wall:x}")
+                    file.write("\n")
+                file.write("\n")
+                file.write(f"{self.entry[0]},{self.entry[1]}\n")
+                file.write(f"{self.exit_maze[0]},{self.exit_maze[1]}\n")
+                file.write(self.path)
+            print(f"Maze succesfully save in: {self.output_file}")
+
+        except Exception:
+            print("Error while tring to save output file.")
+
 
 # def print_hex_maze(hex_map: list[str]) -> None:
 #     if not hex_map:
@@ -356,3 +431,5 @@ class MazeGenerator:
 if __name__ == "__main__":
     maze = MazeGenerator()
     maze.genereate_maze()
+    maze.save_file()
+    print(f"{maze.dict_graph}")
