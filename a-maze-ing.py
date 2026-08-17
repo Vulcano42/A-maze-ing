@@ -2,6 +2,7 @@
 
 import random
 from typing import Any
+import mlx
 
 # height == números de linhas
 # widht == número de colunas
@@ -594,9 +595,25 @@ class MazeGenerator:
 #
 #     print_hex_maze(my_maze)
 #
-#
+def end(data):
+    print("Encerrrando janela....")
+    mlx, mlx_ptr, mlx_win = data
+    print(data)
+    print("oi.....")
+    mlx.mlx_destroy_window(mlx_ptr, mlx_win)
+    mlx.mlx_loop_exit(mlx_ptr)
+    exit(0)
+
 if __name__ == "__main__":
     maze = MazeGenerator()
     maze.genereate_maze()
     maze.save_file()
+    size = 20
+    mlx = mlx.Mlx()
+    mlx_ptr = mlx.mlx_init()
+    mlx_win = mlx.mlx_new_window(mlx_ptr, maze.width * size, maze.height * size, "a-maze-ing")
+    mlx.mlx_hook(mlx_win, 33, 0, end, (mlx, mlx_ptr, mlx_win))
+    # end((mlx, mlx_ptr, mlx_win))
+    mlx.mlx_loop(mlx_ptr)
+    
 #    print(f"{maze.dict_graph}")
