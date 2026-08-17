@@ -140,42 +140,73 @@ class Kruskal():
     def kruskal_imperfect(
         maze: list[list[Node]],
         height: int, width: int
-    ) -> list[tuple[Node, Node]]:
+    ) -> None:
         mst = Kruskal.kruskal_perfect(maze, height, width)
         max_y = len(maze)
         max_x = len(maze[0])
-        for i in range(max_y):
-            for j in range(max_x):
-                print(f"{maze[i][j].wall:x}", end="")
-            print()
-        print("--------")
+        # for i in range(max_y):
+        #     for j in range(max_x):
+        #         print(f"{maze[i][j].wall:x}", end="")
+        #     print()
+    #        print("--------")
+        while Kruskal.verify(maze, max_x, max_y):
+            for y in range(max_y):
+                for x in range(max_x):
+                    options = []
+                    if maze[y][x].wall.bit_count() == 3 and not maze[y][x].fix:
+                        if maze[y][x].wall & 1 == 1 and y > 0 and y - 1 > 0 and not maze[y - 1][x].fix:
+                            options.append(maze[y - 1][x])
+                        if maze[y][x].wall & 2 == 2 and x < max_x - 1 and not maze[y][x + 1].fix:
+                            options.append(maze[y][x + 1])
+                        if maze[y][x].wall & 4 == 4 and y < max_y - 1 and not maze[y + 1][x].fix:
+                            options.append((maze[y + 1][x]))
+                        if maze[y][x].wall & 8 == 8 and x > 0 and x - 1 >= 0 and not maze[y][x - 1].fix:
+                            options.append(maze[y][x - 1])
+                        print("----")
+                        if options:
+                            neighbor = random.choice(options)
+                            print("one -", neighbor.wall, neighbor.cords, flush=True)
+                            if maze[y][x].cords[0] > neighbor.cords[0]:
+                                maze[y][x].wall = maze[y][x].wall - 2**0
+                                neighbor.wall = neighbor.wall - 2**2
+                            if maze[y][x].cords[0] < neighbor.cords[0]:
+                                maze[y][x].wall = maze[y][x].wall - 2**2
+                                neighbor.wall = neighbor.wall - 2**0
+                            if maze[y][x].cords[1] > neighbor.cords[1]:
+                                maze[y][x].wall = maze[y][x].wall - 2**3
+                                neighbor.wall = neighbor.wall - 2**1
+                            if maze[y][x].cords[1] < neighbor.cords[1]:
+                                maze[y][x].wall = maze[y][x].wall - 2**1
+                                neighbor.wall = neighbor.wall - 2**3
+                            print("two -", maze[y][x].wall, maze[y][x].cords, neighbor.wall, neighbor.cords, flush=True)
+            print("saiu do while")
 
+    @staticmethod
+    def verify(maze, max_x, max_y):
         for y in range(max_y):
             for x in range(max_x):
-                options = []
-                if maze[y][x].wall.bit_count() == 3 and not maze[y][x].fix:
-                    if maze[y][x].wall & 1 == 1 and y > 0 and not maze[y - 1][x].fix:
-                        options.append(maze[y - 1][x])
-                    if maze[y][x].wall & 2 == 1 and x < max_x and not maze[y][x + 1].fix:
-                        options.append(maze[y][x + 1])
-                    if maze[y][x].wall & 4 == 1 and y < max_y and not maze[y + 1][x].fix:
-                        options.append((maze[y + 1][x]))
-                    if maze[y][x].wall & 8 == 1 and x > 0 and not maze[y][x - 1].fix:
-                        options.append(maze[y][x - 1])
-                    if options:
-                        neighbor = random.choice(options)
-                        if maze[y][x].cords[0] > neighbor.cords[0]:
-                            maze[y][x].wall = maze[y][x].wall - 2**0
-                            neighbor.wall = neighbor.wall - 2**2
-                        if maze[y][x].cords[0] < neighbor.cords[0]:
-                            maze[y][x].wall = maze[y][x].wall - 2**2
-                            neighbor.wall = neighbor.wall - 2**0
-                        if maze[y][x].cords[1] > neighbor.cords[1]:
-                            maze[y][x].wall = maze[y][x].wall - 2**3
-                            neighbor.wall = neighbor.wall - 2**1
-                        if maze[y][x].cords[1] < neighbor.cords[1]:
-                            maze[y][x].wall = maze[y][x].wall - 2**1
-                            neighbor.wall = neighbor.wall - 2**3
+                ft_count = 0
+                ft_count += 1 if x + 1 < max_x and maze[y][x + 1].fix else 0
+                ft_count += 1 if x - 1 >= 0 and maze[y][x - 1].fix else 0
+                ft_count += 1 if y + 1 < max_y and maze[y + 1][x].fix else 0
+                ft_count += 1 if y - 1 > 0 and maze[y - 1][x].fix else 0
+                if maze[y][x].wall.bit_count() == 3 and not maze[y][x].fix and ft_count < 3:
+                    print(ft_count)
+                    print(maze[y][x].wall, maze[y][x].cords)
+                    for i in range(max_y):
+                        for j in range(max_x):
+                            print(f"{maze[i][j].wall:x}", end="")
+                        print()
+
+                    # print(x, y)
+                    return True
+        print("saido")
+
+        return False
+
+
+
+
 
 
 
@@ -187,6 +218,142 @@ class Kruskal():
         # como não podemos criar 3x3 area aberta
         # e não pode retirar os cantos do labirinto
 
+
+#     @staticmethod
+#     def kruskal_imperfect(
+#         maze: list[list[Node]],
+#         height: int, width: int
+#     ) -> list[tuple[Node, Node]]:
+#
+#         # 1) começa com perfeita
+#         Kruskal.kruskal_perfect(maze, height, width)
+#
+#         # 2) cria lista inicial de "células com 3 paredes fechadas" (não-fix)
+#         candidates = []
+#         for y in range(height):
+#             for x in range(width):
+#                 c = maze[y][x]
+#                 if (c.wall.bit_count() == 3) and (not c.fix):
+#                     candidates.append(c)
+#
+#         rng = random.Random()  # ou use random.seed(...) do seu gerador
+#
+#         # bits -> (dx,dy, bit_deste, bit_do_vizinho)
+#         # N: 1 no atual <-> 4 no vizinho
+#         # E: 2 no atual <-> 8 no vizinho
+#         # S: 4 no atual <-> 1 no vizinho
+#         # W: 8 no atual <-> 2 no vizinho
+#         DIRS = [
+#             (0, -1, 1, 4),  # abre Norte do atual, remove Sul do vizinho
+#             (1, 0,  2, 8),  # abre Leste do atual, remove Oeste do vizinho
+#             (0, 1,  4, 1),  # abre Sul do atual, remove Norte do vizinho
+#             (-1, 0, 8, 2),  # abre Oeste do atual, remove Leste do vizinho
+#         ]
+#
+#         # (opcional) tentativas máximas pra evitar loop infinito
+#         max_tries = height * width * 20
+#         tries = 0
+#
+#         # 3) tenta abrir paredes fechadas em alguns candidatos
+#         rng.shuffle(candidates)
+#
+#         # Para deixar estável/rápido, usamos também uma "pool" dinâmica:
+#         # quando a abertura torna outro vizinho "ruim" (bit_count==3), ele entra na pool.
+#         in_pool = set((n.cords[0], n.cords[1]) for n in candidates)
+#
+#         def try_open_edge(ax, ay, nx, ny, bit_a, bit_n):
+#             """Retorna True se abriu (e aplicou), False se não abriu."""
+#             a = maze[ay][ax]
+#             n = maze[ny][nx]
+#
+#             if a.fix and n.fix:
+#                 return False
+#             if n.fix:
+#                 return False
+#
+#             # se a parede já está aberta, não precisa
+#             if (a.wall & bit_a) == 0:
+#                 return False
+#
+#             # snapshot
+#             old_a = a.wall
+#             old_n = n.wall
+#
+#             # remove parede nos dois lados
+#             a.wall &= ~bit_a
+#             n.wall &= ~bit_n
+#
+#             # ---- aqui plugue seus VALIDADORES EXATOS ----
+#             # Se falhar, desfaz.
+#             if not validate_after_change(maze, height, width, ax, ay, nx, ny):
+#                 a.wall = old_a
+#                 n.wall = old_n
+#                 return False
+#             # -------------------------------------------
+#
+#             return True
+#
+#         while tries < max_tries and candidates:
+#             tries += 1
+#             c = candidates.pop()
+#             ax, ay = c.cords  # note: no seu Node, cords = (x,y) ou (x,y)? no seu código: (x,y) no Node init
+#             # No seu código, você usa maze[entry[0]][entry[1]] no BFS => (y,x).
+#             # Mas no Node init você faz Node(j,i) e cords=(x,y) -> aqui é (x,y) = (j,i).
+#             # Então: ax = c.cords[0] (coluna), ay = c.cords[1] (linha).
+#             # Para indexar maze corretamente: maze[ay][ax]
+#
+#             # se mudou e deixou de ser 3-paredes, pode pular
+#             if (maze[ay][ax].wall.bit_count() != 3) or maze[ay][ax].fix:
+#                 continue
+#
+#             # embaralha direções pra ficar variado
+#             rng_dirs = DIRS[:]
+#             rng.shuffle(rng_dirs)
+#
+#             for dx, dy, bit_a, bit_n in rng_dirs:
+#                 nx = ax + dx
+#                 ny = ay + dy
+#                 if not (0 <= nx < width and 0 <= ny < height):
+#                     continue
+#
+#                 # não abra no vizinho se ele é fix
+#                 if maze[ny][nx].fix:
+#                     continue
+#
+#                 # só tenta se a parede está fechada
+#                 if (maze[ay][ax].wall & bit_a) == 0:
+#                     continue
+#
+#                 if try_open_edge(ax, ay, nx, ny, bit_a, bit_n):
+#                     # se abriu com sucesso, pode tornar alguns vizinhos candidatos
+#                     # adicionamos os "impactados" na pool: c e o vizinho
+#                     for bx, by in [(ax, ay), (nx, ny)]:
+#                         if not maze[by][bx].fix and maze[by][bx].wall.bit_count() == 3:
+#                             key = (bx, by)
+#                             if key not in in_pool:
+#                                 in_pool.add(key)
+#                                 candidates.append(maze[by][bx])
+#                     # depois da primeira abertura, saia (mantém bem mais restrito)
+#                     break
+#
+#         return []  # você não usa mst no imperfect; pode retornar algo se precisar
+#
+# # ---- Você precisa implementar/ligar seus validadores aqui ----
+# def validate_after_change(maze, height, width, ax, ay, nx, ny):
+#     """
+#     Aqui você coloca seus checks:
+#     - nunca deixar 3x3 aberto (conforme seu critério)
+#     - corredor largura <= 2
+#     - (se necessário) manter conectividade etc.
+#
+#     Importante: como só mudou 1 aresta, você deve checar só regiões locais
+#     (3x3 que inclui ax/ay/nx/ny, etc.) pra ficar rápido.
+#     """
+#     # EXEMPLO (PLACEHOLDER):
+#     # if would_create_3x3_open_area(...): return False
+#     # if corridor_wider_than_2(...): return False
+#     return True
+#
 
 class MazeGenerator:
     def __init__(
@@ -225,16 +392,16 @@ class MazeGenerator:
             if path[i].cords[0] < path[i + 1].cords[0]:
                 path_str += "S"
             if path[i].cords[1] > path[i + 1].cords[1]:
-                path_str += "O"
+                path_str += "W"
             if path[i].cords[1] < path[i + 1].cords[1]:
-                path_str += "L"
+                path_str += "E"
         self.path = path_str
 
-        for i in range(self.height):
-            for j in range(self.width):
-                print(f"{self.maze[i][j].wall:x}", end="")
-            print()
-        print()
+#        for i in range(self.height):
+#            for j in range(self.width):
+#                print(f"{self.maze[i][j].wall:x}", end="")
+#            print()
+#        print()
         print(f"{self.entry[0]},{self.entry[1]}\n{self.exit_maze[0]},{self.exit_maze[1]}")
         print(path_str)
 
@@ -432,4 +599,4 @@ if __name__ == "__main__":
     maze = MazeGenerator()
     maze.genereate_maze()
     maze.save_file()
-    print(f"{maze.dict_graph}")
+#    print(f"{maze.dict_graph}")
