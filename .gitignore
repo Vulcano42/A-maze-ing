@@ -2,3 +2,5 @@ env
 .mypy_cache
 *.png
 #maze_analyzer.py
+mlx_test.py
+teste.py

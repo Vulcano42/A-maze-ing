@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import random
+from sys import hexversion
 from typing import Any
 import mlx
 
@@ -394,61 +395,82 @@ def end(data):
     mlx.mlx_loop_exit(mlx_ptr)
 
 def paint_block(mlx, mlx_ptr, win_ptr, color, size_x, size_y, x, y):
+    # print("valores de x e y :",)
     for pos_x in range(size_x):
         for pos_y in range(size_y):
-            mlx.mlx_pixel_put(mlx_ptr, win_ptr, x + pos_x, y + pos_y, color)
+            # print("tentativa de pintar entrado")
+            # print(color)
+            # print(y + pos_y)
+            # mlx.mlx_pixel_put(mlx_ptr, win_ptr, x + pos_x, y + pos_y, color)
+            mlx.mlx_pixel_put(mlx_ptr, win_ptr, y + pos_y, x + pos_x, color)
 
+    # print("x:", x + pos_x, "y:", y + pos_y) 
 
-# def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size):
-#     pos_y = 0
-#     pos_x = 0
-#     main_color = 0x101821
-#     wall_color = 0x7d92ab
-#     # ft_color = 0xcdd9e7
-#     for line in maze:
-#         for node in line:
-#             paint_block(mlx, mlx_ptr, win_ptr, main_color, size, size, pos_x, pos_y)
-#             if node.wall & 1 == 1 and not node.fix:
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x, pos_y)
-#             if node.wall & 2 == 2 and not node.fix:
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y + size - 5 - 1)
-#             if node.wall & 4 == 4 and not node.fix:
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x + size - 5 - 1, pos_y + 0)
-#             if node.wall & 8 == 8 and not node.fix:
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y)
-#             pos_x += size
-#             pos_y += size
-
-def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size):
+def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height):
     pos_y = 0
+    pos_x = 0
+    contador = 0
     # main_color = 0x101821
     # wall_color = 0x7d92ab
-    main_color = 0xFF0000  # Vermelho forte (Para ter certeza que está pintando)
-    wall_color = 0x00FF00  # Verde forte
     # ft_color = 0xcdd9e7
-    print("dentro de put")
-    
+    main_color = 0x211810FF  # Vermelho forte (Para ter certeza que está pintando)
+    wall_color = 0xAB927dFF  # Verde forte
+    paint_block(mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y)
     for line in maze:
-        pos_x = 0  # CORREÇÃO 1: Zera a posição X ao iniciar uma nova linha
-        
+        pos_y = 0
         for node in line:
-            paint_block(mlx, mlx_ptr, win_ptr, main_color, size, size, pos_x, pos_y)
-            
+            # print("x:", pos_x, "y:", pos_y)
             if node.wall & 1 == 1 and not node.fix:
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x, pos_y)
+                # print("x:", pos_x, "y:", pos_y, "ate ", end="")
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x, pos_y)
             if node.wall & 2 == 2 and not node.fix:
-                # CORREÇÃO 3: Removido o "- 1"
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y + size - 5)
+                # print("x:", pos_x, "y:", pos_y + 20 - 5, "ate ", end="")
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y + 20 - 5)
             if node.wall & 4 == 4 and not node.fix:
-                # CORREÇÃO 3: Removido o "- 1" e o "+ 0" inútil
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x + size - 5, pos_y)
+                # print("x:", pos_x + 20 - 5, "y:", pos_y, "ate ", end="")
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x + 20 - 5, pos_y + 0)
             if node.wall & 8 == 8 and not node.fix:
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y)
-            
-            pos_x += size  # Avança o X para o próximo bloco da mesma linha
-            
-        # CORREÇÃO 2: Esta linha deve ficar FORA do loop interno (for node in line:)
-        pos_y += size  # Avança o Y para a linha de baixo apenas quando a linha inteira acabar
+                # print("x:", pos_x, "y:", pos_y, "ate ", "x:", end="")
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y)
+            contador += 1
+            pos_y += 15
+            print("y:", pos_y)
+        pos_x += 15
+        print("x:", pos_x)
+    print("x:", pos_x, "y:", pos_y)
+    print(contador)
+# def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size):
+#     pos_y = 0
+#     # main_color = 0x101821
+#     # wall_color = 0x7d92ab
+#     main_color = 0x80  # Vermelho forte (Para ter certeza que está pintando)
+#     wall_color = 0xFF  # Verde forte
+#     # ft_color = 0xcdd9e7
+#     print("dentro de put")
+#
+#     for line in maze:
+#         pos_x = 0  # CORREÇÃO 1: Zera a posição X ao iniciar uma nova linha
+#
+#         for node in line:
+#             print(node.wall)
+#             paint_block(mlx, mlx_ptr, win_ptr, main_color, size, size, pos_x, pos_y)
+#
+#             if node.wall & 1 == 1 and not node.fix:
+#                 print("dentro de um if")
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x, pos_y)
+#             if node.wall & 2 == 2 and not node.fix:
+#                 # CORREÇÃO 3: Removido o "- 1"
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y + size - 5)
+#             if node.wall & 4 == 4 and not node.fix:
+#                 # CORREÇÃO 3: Removido o "- 1" e o "+ 0" inútil
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x + size - 5, pos_y)
+#             if node.wall & 8 == 8 and not node.fix:
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y)
+#
+#             pos_x += size  # Avança o X para o próximo bloco da mesma linha
+#
+#         # CORREÇÃO 2: Esta linha deve ficar FORA do loop interno (for node in line:)
+#         pos_y += size  # Avança o Y para a linha de baixo apenas quando a linha inteira acabar
 
 
 # COR PRINCIPAL == 101821
@@ -474,28 +496,41 @@ def loop_render(params):
         foi_renderizado = True
 
 def key_hook(params, keycode):
-    maze, mlx, mlx_ptr, win_ptr, size = params
+    maze, mlx, mlx_ptr, win_ptr, width, height = params
     print(f"Tecla acionada! Forçando desenho imediato...")
-    put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size)
+    put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
 
 def render_handler(params):
     mlx, mlx_ptr, win_ptr, img_ptr = params
     # Joga a imagem inteira na janela na posição x=0, y=0
     mlx.mlx_put_image_to_window(mlx_ptr, win_ptr, img_ptr, 0, 0)
 
+def gere_mouse_1(button, x, y, params):
+    maze, mlx, mlx_ptr, win_ptr, width, height = params
+    print(f"Got mouse : {button} at {x}x{y}")
+    
+    if button == 1:
+        put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
+        return 0
+
+
 if __name__ == "__main__":
     maze = MazeGenerator()
     maze.genereate_maze()
     maze.save_file()
-    size = 20
+    # size = 20
+    width = maze.width * 10 + 5 * (maze.height + 1)
+    height = maze.height * 10 + 5 * (maze.height + 1)
     mlx = mlx.Mlx()
     mlx_ptr = mlx.mlx_init()
-    win_ptr = mlx.mlx_new_window(mlx_ptr, maze.width * size, maze.height * size, "a-maze-ing")
-    img_ptr = mlx.mlx_new_image(mlx_ptr, maze.width * size, maze.height * size,)
+    # WITDTH == 20 * 20 == 400 == HEIGHT
+    win_ptr = mlx.mlx_new_window(mlx_ptr, width, height, "a-maze-ing")
+    # img_ptr = mlx.mlx_new_image(mlx_ptr, maze.width * size, maze.height * size,)
     # put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, size)
     mlx.mlx_hook(win_ptr, 33, 0, end, (mlx, mlx_ptr, win_ptr))
-    mlx.mlx_loop_hook(mlx_ptr, render_handler, (mlx, mlx_ptr, win_ptr, img_ptr))
+    # mlx.mlx_loop_hook(mlx_ptr, render_handler, (mlx, mlx_ptr, win_ptr, img_ptr))
     # mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, size))
+    mlx.mlx_mouse_hook(win_ptr, gere_mouse_1, (maze.maze, mlx, mlx_ptr, win_ptr, width, height))
     # mlx.mlx_loop_hook(mlx_ptr, loop_render, (maze.maze, mlx, mlx_ptr, win_ptr, size))
     # mlx.mlx_hook(win_ptr, 2, 0, key_hook, (maze.maze, mlx, mlx_ptr, win_ptr, size))
     mlx.mlx_loop(mlx_ptr)
