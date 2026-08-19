@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import random
-from sys import hexversion
 from typing import Any
 import mlx
 
@@ -134,10 +133,7 @@ class Kruskal():
                 mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
         return mst
-# 1110
-# 1101
-# 1011
-# 0111
+
     @staticmethod
     def kruskal_imperfect(
         maze: list[list[Node]],
@@ -146,11 +142,6 @@ class Kruskal():
         mst = Kruskal.kruskal_perfect(maze, height, width)
         max_y = len(maze)
         max_x = len(maze[0])
-        # for i in range(max_y):
-        #     for j in range(max_x):
-        #         print(f"{maze[i][j].wall:x}", end="")
-        #     print()
-    #        print("--------")
         while Kruskal.verify(maze, max_x, max_y):
             for y in range(max_y):
                 for x in range(max_x):
@@ -164,13 +155,12 @@ class Kruskal():
                             options.append((maze[y + 1][x]))
                         if maze[y][x].wall & 8 == 8 and x > 0 and x - 1 >= 0 and not maze[y][x - 1].fix:
                             options.append(maze[y][x - 1])
-                        print("----")
                         if options:
                             neighbor = random.choice(options)
-                            print("one -", neighbor.wall, neighbor.cords, flush=True)
                             if maze[y][x].cords[0] > neighbor.cords[0]:
                                 maze[y][x].wall = maze[y][x].wall - 2**0
                                 neighbor.wall = neighbor.wall - 2**2
+                                #paint_block(mlx, mlx_ptr, win_ptr, 0xFFFFFFFF, size_x, size_y, y * 15, x * 15) #nesta func x é linha e y é coluna....
                             if maze[y][x].cords[0] < neighbor.cords[0]:
                                 maze[y][x].wall = maze[y][x].wall - 2**2
                                 neighbor.wall = neighbor.wall - 2**0
@@ -180,8 +170,6 @@ class Kruskal():
                             if maze[y][x].cords[1] < neighbor.cords[1]:
                                 maze[y][x].wall = maze[y][x].wall - 2**1
                                 neighbor.wall = neighbor.wall - 2**3
-                            print("two -", maze[y][x].wall, maze[y][x].cords, neighbor.wall, neighbor.cords, flush=True)
-            print("saiu do while")
 
     @staticmethod
     def verify(maze, max_x, max_y):
@@ -223,8 +211,6 @@ class MazeGenerator:
         self.maze: list[list[Node]] = []
         self.path = ""
 
-    # def imprimir(self):
-    #     print(self.output_file)
     def genereate_maze(self) -> None:
         self.validate_config()
         self.maze = [
@@ -257,9 +243,6 @@ class MazeGenerator:
         print(f"{self.entry[0]},{self.entry[1]}\n{self.exit_maze[0]},{self.exit_maze[1]}")
         print(path_str)
 
-
-
-
     def logo(self) -> None:
         mid_h = int(self.dict_graph["height"] / 2)
         mid_w = int(self.dict_graph["width"] / 2)
@@ -282,17 +265,6 @@ class MazeGenerator:
         self.maze[mid_h + 2][mid_w + 1].fix = True
         self.maze[mid_h + 2][mid_w + 2].fix = True
         self.maze[mid_h + 2][mid_w + 3].fix = True
-
-        if self.maze[self.entry[0] - 1][self.entry[1] - 1].fix == True:
-            print("Maze entry is the same as 42 logo")
-            exit(1)
-
-        if self.maze[self.exit_maze[0] - 1][self.exit_maze[1] - 1].fix == True:
-            print("Maze exit is the same as 42 logo")
-            exit(1)
-
-# def parse_config(file: str) -> dict(int, int, tuplent, int):
-
 
     def validate_config(self) -> None:
         error_msg: str = (
@@ -395,12 +367,8 @@ def end(data):
     mlx.mlx_loop_exit(mlx_ptr)
 
 def paint_block(mlx, mlx_ptr, win_ptr, color, size_x, size_y, x, y):
-    # print("valores de x e y :",)
     for pos_x in range(size_x):
         for pos_y in range(size_y):
-            # print("tentativa de pintar entrado")
-            # print(color)
-            # print(y + pos_y)
             # mlx.mlx_pixel_put(mlx_ptr, win_ptr, x + pos_x, y + pos_y, color)
             mlx.mlx_pixel_put(mlx_ptr, win_ptr, y + pos_y, x + pos_x, color)
 
@@ -413,8 +381,8 @@ def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height):
     # main_color = 0x101821
     # wall_color = 0x7d92ab
     # ft_color = 0xcdd9e7
-    main_color = 0x211810FF  # Vermelho forte (Para ter certeza que está pintando)
-    wall_color = 0xAB927dFF  # Verde forte
+    main_color = 0x000000FF  #101821 # Vermelho forte (Para ter certeza que está pintando)
+    wall_color = 0xFFFFFFFF  #7D92AB # Verde forte
     paint_block(mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y)
     for line in maze:
         pos_y = 0
@@ -439,38 +407,6 @@ def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height):
         print("x:", pos_x)
     print("x:", pos_x, "y:", pos_y)
     print(contador)
-# def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size):
-#     pos_y = 0
-#     # main_color = 0x101821
-#     # wall_color = 0x7d92ab
-#     main_color = 0x80  # Vermelho forte (Para ter certeza que está pintando)
-#     wall_color = 0xFF  # Verde forte
-#     # ft_color = 0xcdd9e7
-#     print("dentro de put")
-#
-#     for line in maze:
-#         pos_x = 0  # CORREÇÃO 1: Zera a posição X ao iniciar uma nova linha
-#
-#         for node in line:
-#             print(node.wall)
-#             paint_block(mlx, mlx_ptr, win_ptr, main_color, size, size, pos_x, pos_y)
-#
-#             if node.wall & 1 == 1 and not node.fix:
-#                 print("dentro de um if")
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x, pos_y)
-#             if node.wall & 2 == 2 and not node.fix:
-#                 # CORREÇÃO 3: Removido o "- 1"
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y + size - 5)
-#             if node.wall & 4 == 4 and not node.fix:
-#                 # CORREÇÃO 3: Removido o "- 1" e o "+ 0" inútil
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x + size - 5, pos_y)
-#             if node.wall & 8 == 8 and not node.fix:
-#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y)
-#
-#             pos_x += size  # Avança o X para o próximo bloco da mesma linha
-#
-#         # CORREÇÃO 2: Esta linha deve ficar FORA do loop interno (for node in line:)
-#         pos_y += size  # Avança o Y para a linha de baixo apenas quando a linha inteira acabar
 
 
 # COR PRINCIPAL == 101821
@@ -508,7 +444,6 @@ def render_handler(params):
 def gere_mouse_1(button, x, y, params):
     maze, mlx, mlx_ptr, win_ptr, width, height = params
     print(f"Got mouse : {button} at {x}x{y}")
-    
     if button == 1:
         put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
         return 0
