@@ -206,156 +206,6 @@ class Kruskal():
         return False
 
 
-
-
-
-
-
-    # def kruskal_imperfect():
-        # Em teoria é criamos uma mst
-        # depois tendo a mst iteramos ela para buscar celulas celulas
-        # com 3 paredes e selecionar uma parede de forma aleatorio
-        # e eliminar ela, mas existem limitações
-        # como não podemos criar 3x3 area aberta
-        # e não pode retirar os cantos do labirinto
-
-
-#     @staticmethod
-#     def kruskal_imperfect(
-#         maze: list[list[Node]],
-#         height: int, width: int
-#     ) -> list[tuple[Node, Node]]:
-#
-#         # 1) começa com perfeita
-#         Kruskal.kruskal_perfect(maze, height, width)
-#
-#         # 2) cria lista inicial de "células com 3 paredes fechadas" (não-fix)
-#         candidates = []
-#         for y in range(height):
-#             for x in range(width):
-#                 c = maze[y][x]
-#                 if (c.wall.bit_count() == 3) and (not c.fix):
-#                     candidates.append(c)
-#
-#         rng = random.Random()  # ou use random.seed(...) do seu gerador
-#
-#         # bits -> (dx,dy, bit_deste, bit_do_vizinho)
-#         # N: 1 no atual <-> 4 no vizinho
-#         # E: 2 no atual <-> 8 no vizinho
-#         # S: 4 no atual <-> 1 no vizinho
-#         # W: 8 no atual <-> 2 no vizinho
-#         DIRS = [
-#             (0, -1, 1, 4),  # abre Norte do atual, remove Sul do vizinho
-#             (1, 0,  2, 8),  # abre Leste do atual, remove Oeste do vizinho
-#             (0, 1,  4, 1),  # abre Sul do atual, remove Norte do vizinho
-#             (-1, 0, 8, 2),  # abre Oeste do atual, remove Leste do vizinho
-#         ]
-#
-#         # (opcional) tentativas máximas pra evitar loop infinito
-#         max_tries = height * width * 20
-#         tries = 0
-#
-#         # 3) tenta abrir paredes fechadas em alguns candidatos
-#         rng.shuffle(candidates)
-#
-#         # Para deixar estável/rápido, usamos também uma "pool" dinâmica:
-#         # quando a abertura torna outro vizinho "ruim" (bit_count==3), ele entra na pool.
-#         in_pool = set((n.cords[0], n.cords[1]) for n in candidates)
-#
-#         def try_open_edge(ax, ay, nx, ny, bit_a, bit_n):
-#             """Retorna True se abriu (e aplicou), False se não abriu."""
-#             a = maze[ay][ax]
-#             n = maze[ny][nx]
-#
-#             if a.fix and n.fix:
-#                 return False
-#             if n.fix:
-#                 return False
-#
-#             # se a parede já está aberta, não precisa
-#             if (a.wall & bit_a) == 0:
-#                 return False
-#
-#             # snapshot
-#             old_a = a.wall
-#             old_n = n.wall
-#
-#             # remove parede nos dois lados
-#             a.wall &= ~bit_a
-#             n.wall &= ~bit_n
-#
-#             # ---- aqui plugue seus VALIDADORES EXATOS ----
-#             # Se falhar, desfaz.
-#             if not validate_after_change(maze, height, width, ax, ay, nx, ny):
-#                 a.wall = old_a
-#                 n.wall = old_n
-#                 return False
-#             # -------------------------------------------
-#
-#             return True
-#
-#         while tries < max_tries and candidates:
-#             tries += 1
-#             c = candidates.pop()
-#             ax, ay = c.cords  # note: no seu Node, cords = (x,y) ou (x,y)? no seu código: (x,y) no Node init
-#             # No seu código, você usa maze[entry[0]][entry[1]] no BFS => (y,x).
-#             # Mas no Node init você faz Node(j,i) e cords=(x,y) -> aqui é (x,y) = (j,i).
-#             # Então: ax = c.cords[0] (coluna), ay = c.cords[1] (linha).
-#             # Para indexar maze corretamente: maze[ay][ax]
-#
-#             # se mudou e deixou de ser 3-paredes, pode pular
-#             if (maze[ay][ax].wall.bit_count() != 3) or maze[ay][ax].fix:
-#                 continue
-#
-#             # embaralha direções pra ficar variado
-#             rng_dirs = DIRS[:]
-#             rng.shuffle(rng_dirs)
-#
-#             for dx, dy, bit_a, bit_n in rng_dirs:
-#                 nx = ax + dx
-#                 ny = ay + dy
-#                 if not (0 <= nx < width and 0 <= ny < height):
-#                     continue
-#
-#                 # não abra no vizinho se ele é fix
-#                 if maze[ny][nx].fix:
-#                     continue
-#
-#                 # só tenta se a parede está fechada
-#                 if (maze[ay][ax].wall & bit_a) == 0:
-#                     continue
-#
-#                 if try_open_edge(ax, ay, nx, ny, bit_a, bit_n):
-#                     # se abriu com sucesso, pode tornar alguns vizinhos candidatos
-#                     # adicionamos os "impactados" na pool: c e o vizinho
-#                     for bx, by in [(ax, ay), (nx, ny)]:
-#                         if not maze[by][bx].fix and maze[by][bx].wall.bit_count() == 3:
-#                             key = (bx, by)
-#                             if key not in in_pool:
-#                                 in_pool.add(key)
-#                                 candidates.append(maze[by][bx])
-#                     # depois da primeira abertura, saia (mantém bem mais restrito)
-#                     break
-#
-#         return []  # você não usa mst no imperfect; pode retornar algo se precisar
-#
-# # ---- Você precisa implementar/ligar seus validadores aqui ----
-# def validate_after_change(maze, height, width, ax, ay, nx, ny):
-#     """
-#     Aqui você coloca seus checks:
-#     - nunca deixar 3x3 aberto (conforme seu critério)
-#     - corredor largura <= 2
-#     - (se necessário) manter conectividade etc.
-#
-#     Importante: como só mudou 1 aresta, você deve checar só regiões locais
-#     (3x3 que inclui ax/ay/nx/ny, etc.) pra ficar rápido.
-#     """
-#     # EXEMPLO (PLACEHOLDER):
-#     # if would_create_3x3_open_area(...): return False
-#     # if corridor_wider_than_2(...): return False
-#     return True
-#
-
 class MazeGenerator:
     def __init__(
         self,
@@ -534,75 +384,104 @@ class MazeGenerator:
             print("Error while tring to save output file.")
 
 
-# def print_hex_maze(hex_map: list[str]) -> None:
-#     if not hex_map:
-#         return
-#
-#     # Desenha o teto (Norte) apenas da primeira linha
-#     top_border: str = "+"
-#     for char in hex_map[0]:
-#         val: int = int(char, 16)
-#         # Verifica Bit 0 (Norte)
-#         top_border += "---+" if (val & 1) else "   +"
-#     print(top_border)
-#
-#     for line in hex_map:
-#         # A parede Oeste (Esquerda) só é checada na primeira célula da linha
-#         first_val: int = int(line[0], 16)
-#         row_str: str = "|" if (first_val & 8) else " "
-#
-#         bottom_str: str = "+"
-#
-#         for char in line:
-#             val = int(char, 16)
-#
-#             # O centro da célula (podemos colocar um " " ou um "X" se for o caminho)
-#             cell_center: str = "   "
-#
-#             # Verifica Bit 1 (Leste / Direita)
-#             row_str += f"{cell_center}|" if (val & 2) else f"{cell_center} "
-#
-#             # Verifica Bit 2 (Sul / Baixo)
-#             bottom_str += "---+" if (val & 4) else "   +"
-#
-#         print(row_str)
-#         print(bottom_str)
-#
-# if __name__ == "__main__":
-#     # O seu dump hexadecimal
-#     my_maze: list[str] = [
-#         "957bd11555791539513b",
-#         "8556d2e9113aad2ad686",
-#         "8553d2d6eec2ebc053eb",
-#         "83b83c17d53a9456d056",
-#         "ac6aa92d3baead513ebb",
-#         "87baeac78045297e8782",
-#         "ed0454116ad10039016a",
-#         "bd2bbd6c3ebeee86ec7a",
-#         "8542a93f816fffc397d6",
-#         "ebd006efec557f928557",
-#         "d03ea97fffbfffaa83d3",
-#         "d68386d13fafd56c6856",
-#         "bd6a87beafafffd15413",
-#         "c152838103abbbd453ee",
-#         "b87c6c2eec06847b9413",
-#         "c6bbb90397c3839003ae",
-#         "b94042ac07d06aeeaac3",
-#         "82d43aebad56b87beed2",
-#         "aad56812c53bc6941152",
-#         "ec557eeed5447d6d6c7e",
-#     ]
-#
-#     print_hex_maze(my_maze)
-#
+
 def end(data):
     print("Encerrrando janela....")
-    mlx, mlx_ptr, mlx_win = data
+    mlx, mlx_ptr, win_ptr = data
     print(data)
     print("oi.....")
-    mlx.mlx_destroy_window(mlx_ptr, mlx_win)
+    mlx.mlx_destroy_window(mlx_ptr, win_ptr)
     mlx.mlx_loop_exit(mlx_ptr)
-    exit(0)
+
+def paint_block(mlx, mlx_ptr, win_ptr, color, size_x, size_y, x, y):
+    for pos_x in range(size_x):
+        for pos_y in range(size_y):
+            mlx.mlx_pixel_put(mlx_ptr, win_ptr, x + pos_x, y + pos_y, color)
+
+
+# def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size):
+#     pos_y = 0
+#     pos_x = 0
+#     main_color = 0x101821
+#     wall_color = 0x7d92ab
+#     # ft_color = 0xcdd9e7
+#     for line in maze:
+#         for node in line:
+#             paint_block(mlx, mlx_ptr, win_ptr, main_color, size, size, pos_x, pos_y)
+#             if node.wall & 1 == 1 and not node.fix:
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x, pos_y)
+#             if node.wall & 2 == 2 and not node.fix:
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y + size - 5 - 1)
+#             if node.wall & 4 == 4 and not node.fix:
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x + size - 5 - 1, pos_y + 0)
+#             if node.wall & 8 == 8 and not node.fix:
+#                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y)
+#             pos_x += size
+#             pos_y += size
+
+def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size):
+    pos_y = 0
+    # main_color = 0x101821
+    # wall_color = 0x7d92ab
+    main_color = 0xFF0000  # Vermelho forte (Para ter certeza que está pintando)
+    wall_color = 0x00FF00  # Verde forte
+    # ft_color = 0xcdd9e7
+    print("dentro de put")
+    
+    for line in maze:
+        pos_x = 0  # CORREÇÃO 1: Zera a posição X ao iniciar uma nova linha
+        
+        for node in line:
+            paint_block(mlx, mlx_ptr, win_ptr, main_color, size, size, pos_x, pos_y)
+            
+            if node.wall & 1 == 1 and not node.fix:
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x, pos_y)
+            if node.wall & 2 == 2 and not node.fix:
+                # CORREÇÃO 3: Removido o "- 1"
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y + size - 5)
+            if node.wall & 4 == 4 and not node.fix:
+                # CORREÇÃO 3: Removido o "- 1" e o "+ 0" inútil
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, size, pos_x + size - 5, pos_y)
+            if node.wall & 8 == 8 and not node.fix:
+                paint_block(mlx, mlx_ptr, win_ptr, wall_color, size, 5, pos_x, pos_y)
+            
+            pos_x += size  # Avança o X para o próximo bloco da mesma linha
+            
+        # CORREÇÃO 2: Esta linha deve ficar FORA do loop interno (for node in line:)
+        pos_y += size  # Avança o Y para a linha de baixo apenas quando a linha inteira acabar
+
+
+# COR PRINCIPAL == 101821
+# COR PAREDE == 7d92ab
+# COR CAMINHO == 65d4ee
+# COR 42 == cdd9e7
+# tamanho de cada quadrado == 20px
+
+def render_maze(params):
+    maze, mlx, mlx_ptr, win_ptr, size = params
+    print("Renderizando Labirinto")
+    put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size)
+
+foi_renderizado = False
+
+def loop_render(params):
+    global foi_renderizado
+    # Se ainda não foi pintado, desenha tudo e trava a função
+    if not foi_renderizado:
+        maze_data, mlx_obj, mlx_p, win_p, sz = params
+        print("Renderizando Labirinto no WSL...")
+        put_block_pixel(maze_data, mlx_obj, mlx_p, win_p, sz)
+        foi_renderizado = True
+
+def key_hook(params, keycode):
+    maze, mlx, mlx_ptr, win_ptr, size = params
+    print(f"Tecla acionada! Forçando desenho imediato...")
+    put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size)
+
+def render_handler(params):
+    mlx, mlx_ptr, win_ptr, img_ptr = params
+    # Joga a imagem inteira na janela na posição x=0, y=0
+    mlx.mlx_put_image_to_window(mlx_ptr, win_ptr, img_ptr, 0, 0)
 
 if __name__ == "__main__":
     maze = MazeGenerator()
@@ -611,9 +490,14 @@ if __name__ == "__main__":
     size = 20
     mlx = mlx.Mlx()
     mlx_ptr = mlx.mlx_init()
-    mlx_win = mlx.mlx_new_window(mlx_ptr, maze.width * size, maze.height * size, "a-maze-ing")
-    mlx.mlx_hook(mlx_win, 33, 0, end, (mlx, mlx_ptr, mlx_win))
-    # end((mlx, mlx_ptr, mlx_win))
+    win_ptr = mlx.mlx_new_window(mlx_ptr, maze.width * size, maze.height * size, "a-maze-ing")
+    img_ptr = mlx.mlx_new_image(mlx_ptr, maze.width * size, maze.height * size,)
+    # put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, size)
+    mlx.mlx_hook(win_ptr, 33, 0, end, (mlx, mlx_ptr, win_ptr))
+    mlx.mlx_loop_hook(mlx_ptr, render_handler, (mlx, mlx_ptr, win_ptr, img_ptr))
+    # mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, size))
+    # mlx.mlx_loop_hook(mlx_ptr, loop_render, (maze.maze, mlx, mlx_ptr, win_ptr, size))
+    # mlx.mlx_hook(win_ptr, 2, 0, key_hook, (maze.maze, mlx, mlx_ptr, win_ptr, size))
     mlx.mlx_loop(mlx_ptr)
     
 #    print(f"{maze.dict_graph}")
