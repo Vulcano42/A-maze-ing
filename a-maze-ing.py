@@ -2,7 +2,7 @@
 
 import random
 from typing import Any
-import mlx
+from mlx import Mlx
 
 # height == números de linhas
 # widht == número de colunas
@@ -133,6 +133,7 @@ class Kruskal():
                     t[1].wall = t[1].wall - 2**3
                 mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
+                # render(t[0], t[1])
         return mst
 
     @staticmethod
@@ -197,7 +198,7 @@ class Kruskal():
         return False
 
 
-class MazeGenerator:
+class MazeGenerator():
     def __init__(
         self,
     ) -> None:
@@ -211,7 +212,9 @@ class MazeGenerator:
         self.perfect = self.dict_graph["perfect"]
         self.output_file = self.dict_graph["output_file"]
         self.maze: list[list[Node]] = []
-        self.path = ""
+        self.path_str = ""
+        self.path
+        # super().__init__()
 
     def genereate_maze(self) -> None:
         self.validate_config()
@@ -226,18 +229,18 @@ class MazeGenerator:
         else:
             print("imperfeito")
             mst = Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
-        path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
+        self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
         path_str = ""
-        for i in range(len(path) - 1):
-            if path[i].cords[0] > path[i + 1].cords[0]:
-                path_str += "N"
-            if path[i].cords[0] < path[i + 1].cords[0]:
-                path_str += "S"
-            if path[i].cords[1] > path[i + 1].cords[1]:
-                path_str += "W"
-            if path[i].cords[1] < path[i + 1].cords[1]:
-                path_str += "E"
-        self.path = path_str
+        for i in range(len(self.path) - 1):
+            if self.path[i].cords[0] > self.path[i + 1].cords[0]:
+                self.path_str += "N"
+            if self.path[i].cords[0] < self.path[i + 1].cords[0]:
+                self.path_str += "S"
+            if self.path[i].cords[1] > self.path[i + 1].cords[1]:
+                self.path_str += "W"
+            if self.path[i].cords[1] < self.path[i + 1].cords[1]:
+                self.path_str += "E"
+        self.path_str = path_str
 
 #        for i in range(self.height):
 #            for j in range(self.width):
@@ -354,7 +357,7 @@ class MazeGenerator:
                 file.write("\n")
                 file.write(f"{self.entry[0]},{self.entry[1]}\n")
                 file.write(f"{self.exit_maze[0]},{self.exit_maze[1]}\n")
-                file.write(self.path)
+                file.write(self.path_str)
             print(f"Maze succesfully save in: {self.output_file}")
 
         except Exception:
@@ -378,150 +381,182 @@ class MazeGenerator:
 
 class Render:
     def __init__(self) -> None:
-        self.colors = [
-                    # (BACKGROUND, WALL, 42-COLOR)
-                    (0x56291EFF, 0x0E36FCFF, 0x96C696FF),  # Set 1: Azul, Orange, Blue Green
-                    (0x58202EFF, 0x147FFEFF, 0x58DB9DFF),  # Set 2: Blue-Violet, Yellow Orange, Green
-                    (0x59102CFF, 0x21FEFFFF, 0x0901FFFF),  # Set 3: Violet, Yellow, Red
-                    (0x591378FF, 0x1BB269FF, 0x1B50C9FF),  # Set 4: Red-Violet, Yellow Green, Red-Orange
-                ]
-def end(data):
-    print("Encerrrando janela....")
-    mlx, mlx_ptr, win_ptr = data
-    print(data)
-    print("oi.....")
-    mlx.mlx_destroy_window(mlx_ptr, win_ptr)
-    mlx.mlx_loop_exit(mlx_ptr)
+        self.colors = self.select_color()
+        self.maze = None
+        # self.mlx = mlx.Mlx()
+        # self.mlx_ptr = self.mlx.mlx_init()
+        # self.win_ptr = self.mlx_new_window()
 
-def paint_block(mlx, mlx_ptr, win_ptr, color, size_x, size_y, x, y):
-    for pos_x in range(size_x):
-        for pos_y in range(size_y):
-            # mlx.mlx_pixel_put(mlx_ptr, win_ptr, x + pos_x, y + pos_y, color)
-            mlx.mlx_pixel_put(mlx_ptr, win_ptr, y + pos_y, x + pos_x, color)
+    class Color:
+        def __init__(self, color) -> None:
+            self.color = color
+            self.next = self
+    # ARGB
+    def select_color(self):
+        c_1 = self.Color((0xFF1E2956, 0xFFFC360E, 0xFF96C696))
+        c_2 = self.Color((0xFF2E2058, 0xFFFE7F14, 0xFF9DDB58))
+        c_3 = self.Color((0xFF2C1059, 0xFFFFFE21, 0xFFFF0109))
+        c_4 = self.Color((0xFF781359, 0xFF69B21B, 0xFFC9501B))
+        c_1.next = c_2
+        c_2.next = c_3
+        c_3.next = c_4
+        c_4.next = c_1
+        return c_1
 
-    # print("x:", x + pos_x, "y:", y + pos_y) 
+    def next_color(self):
+        self.colors = self.colors.next
 
-def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height):
-    pos_y = 0
-    pos_x = 0
-    contador = 0
-    # main_color = 0x101821
-    # wall_color = 0x7d92ab
-    # ft_color = 0xcdd9e7
-    main_color = 0x000000FF  #101821 # Vermelho forte (Para ter certeza que está pintando)
-    wall_color = 0xFFFFFFFF  #7D92AB # Verde forte
-    paint_block(mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y)
-    for line in maze:
+    def start(self):
+        width = maze.width * 10 + 5 * (maze.height + 1)
+        height = maze.height * 10 + 5 * (maze.height + 1)
+        mlx = Mlx()
+        mlx_ptr = mlx.mlx_init()
+        win_ptr = mlx.mlx_new_window(mlx_ptr, width, height, "a-maze-ing")
+        mlx.mlx_hook(win_ptr, 33, 0, self.end, (mlx, mlx_ptr, win_ptr))
+        mlx.mlx_key_hook(win_ptr, self.gere_key, (maze, mlx, mlx_ptr, win_ptr, width, height))
+        mlx.mlx_expose_hook(win_ptr, self.render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, width, height))
+        mlx.mlx_loop(mlx_ptr)
+
+    def end(self, data):
+        print("Encerrrando janela....")
+        mlx, mlx_ptr, win_ptr = data
+        mlx.mlx_destroy_window(mlx_ptr, win_ptr)
+        mlx.mlx_loop_exit(mlx_ptr)
+
+    def paint_block(self, mlx, mlx_ptr, win_ptr, color, size_x, size_y, x, y):
+        for pos_x in range(size_x):
+            for pos_y in range(size_y):
+                mlx.mlx_pixel_put(mlx_ptr, win_ptr, y + pos_y, x + pos_x, color)
+
+
+    def put_block_pixel(self, maze, mlx, mlx_ptr, win_ptr, width, height):
         pos_y = 0
-        for node in line:
-            # print("x:", pos_x, "y:", pos_y)
-            if node.wall & 1 == 1 and not node.fix:
-                # print("x:", pos_x, "y:", pos_y, "ate ", end="")
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x, pos_y)
-            if node.wall & 2 == 2 and not node.fix:
-                # print("x:", pos_x, "y:", pos_y + 20 - 5, "ate ", end="")
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y + 20 - 5)
-            if node.wall & 4 == 4 and not node.fix:
-                # print("x:", pos_x + 20 - 5, "y:", pos_y, "ate ", end="")
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x + 20 - 5, pos_y + 0)
-            if node.wall & 8 == 8 and not node.fix:
-                # print("x:", pos_x, "y:", pos_y, "ate ", "x:", end="")
-                paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y)
-            if node.fix:
-                paint_block(mlx, mlx_ptr, win_ptr, color, 10, 10, pos_x + 5, pos_y + 5)
-            contador += 1
-            pos_y += 15
-            # print("y:", pos_y)
-        pos_x += 15
-        # print("x:", pos_x)
-    # print("x:", pos_x, "y:", pos_y)
-    print(contador)
-
-def render_maze(params):
-    maze, mlx, mlx_ptr, win_ptr, width, height = params
-    print("Renderizando Labirinto")
-    put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
-
-def gere_key(key, params):
-    print(f"Got key {key}: ", end="")
-    maze, mlx, mlx_ptr, win_ptr, width, height = params
-
-    if key == 113:  # 'q'
-        for line in maze.maze:
+        pos_x = 0
+        contador = 0
+        main_color = self.colors.color[0]  #101821 # Vermelho forte (Para ter certeza que está pintando)
+        wall_color = self.colors.color[1]  #7D92AB # Verde forte
+        ft_color = self.colors.color[2]
+        self.paint_block(mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y)
+        for line in maze:
+            pos_y = 0
             for node in line:
-                node.wall = 15
-                node.parent = node
-                node.rank = 0
-        new_seed = random.randint(0, 10000)
-        print("New seed:", new_seed)
-        random.seed(new_seed)
-        maze.seed = new_seed
-        maze.genereate_maze()
-        maze.save_file()
-        mlx.mlx_clear_window(mlx_ptr, win_ptr)
-        put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, width, height)
-        
-    # elif key == 119:  # 'w'
-    #     xvar.mlx.mlx_do_key_autorepeaton(xvar.mlx_ptr)
-    #     print("key repeat on")
-    #     return 0
-    # elif key == 101:  # 'e'
-    #     draw_colormap(xvar)
-    #     print("colormap")
-    #     return 0
-    # elif key == 114:  # 'r'
-    #     xvar.mlx.mlx_mouse_hide(xvar.mlx_ptr)
-    #     print("mouse hide")
-    #     return 0
-    # elif key == 116:  # 't'
-    #     xvar.mlx.mlx_mouse_show(xvar.mlx_ptr)
-    #     print("mouse show")
-    #     return 0
-    # elif key == 121:  # 'y'
-    #     xvar.mlx.mlx_mouse_move(xvar.win_1, 200, 200)
-    #     print("mouse move")
-    #     return 0
-    # elif key == 117:  # 'u'
-    #     ret, x, y = xvar.mlx.mlx_mouse_get_pos(xvar.win_1)
-    #     print(f"current mouse pos is {x} x {y}")
-    #     return 0
-    # elif key == 105:  # 'i'
-    #     xvar.mlx.mlx_sync(xvar.mlx_ptr, Mlx.SYNC_IMAGE_WRITABLE, xvar.img_2.img)
-    #     # fill image in white
-    #     for offset in range(0, xvar.img_2.sl * 100, 4):
-    #         xvar.img_2.data[offset:offset+4] = (0xFFFFFFFF).to_bytes(4, 'little')
-    #
-    #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 50, 50)
-    #
-    #     # update in red
-    #     for offset in range(0, xvar.img_2.sl * 100, 4):
-    #         xvar.img_2.data[offset:offset+4] = (0xFFFF0000).to_bytes(4, 'little')
-    #
-    #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 250, 250)
-    #     print("update image without sync - most likely 2 red squares")
-    #     return 0
+                if node.wall & 1 == 1:
+                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x, pos_y)
+                if node.wall & 2 == 2:
+                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y + 20 - 5)
+                if node.wall & 4 == 4:
+                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x + 20 - 5, pos_y + 0)
+                if node.wall & 8 == 8:
+                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y)
+                if node.fix:
+                    self.paint_block(mlx, mlx_ptr, win_ptr, ft_color, 10, 10, pos_x + 5, pos_y + 5)
+                contador += 1
+                pos_y += 15
+                # print("y:", pos_y)
+            pos_x += 15
+            # print("x:", pos_x)
+        # print("x:", pos_x, "y:", pos_y)
+        print(contador)
+
+    def render_maze(self, params):
+        maze, mlx, mlx_ptr, win_ptr, width, height = params
+        print("Renderizando Labirinto")
+        self.put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
+        x, y = maze.entry[0], maze.entry[1]
+        for c in maze.path:
+            if c == "N":
+                self.paint_block(mlx, mlx_ptr, win_ptr, 0xFF11A3FE, 10, 15, x + 5, y + 5)
+                self.paint_block(mlx, mlx_ptr, win_ptr, 0xFF11A3FE, 10, 15, x + 5, y + 5 + 15)
+            if c == "E":
+            if c == "S":
+            if c == "W":
+
+
+    def gere_key(self, key, params):
+        print(f"Got key {key}: ", end="")
+        maze, mlx, mlx_ptr, win_ptr, width, height = params
+
+        if key == 113:  # 'q'
+            for line in maze.maze:
+                for node in line:
+                    node.wall = 15
+                    node.parent = node
+                    node.rank = 0
+            new_seed = random.randint(0, 10000)
+            print("New seed:", new_seed)
+            random.seed(new_seed)
+            maze.seed = new_seed
+            maze.genereate_maze()
+            maze.save_file()
+            mlx.mlx_clear_window(mlx_ptr, win_ptr)
+            self.next_color()
+            self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, width, height)
+            
+        # elif key == 119:  # 'w'
+        #     xvar.mlx.mlx_do_key_autorepeaton(xvar.mlx_ptr)
+        #     print("key repeat on")
+        #     return 0
+        # elif key == 101:  # 'e'
+        #     draw_colormap(xvar)
+        #     print("colormap")
+        #     return 0
+        # elif key == 114:  # 'r'
+        #     xvar.mlx.mlx_mouse_hide(xvar.mlx_ptr)
+        #     print("mouse hide")
+        #     return 0
+        # elif key == 116:  # 't'
+        #     xvar.mlx.mlx_mouse_show(xvar.mlx_ptr)
+        #     print("mouse show")
+        #     return 0
+        # elif key == 121:  # 'y'
+        #     xvar.mlx.mlx_mouse_move(xvar.win_1, 200, 200)
+        #     print("mouse move")
+        #     return 0
+        # elif key == 117:  # 'u'
+        #     ret, x, y = xvar.mlx.mlx_mouse_get_pos(xvar.win_1)
+        #     print(f"current mouse pos is {x} x {y}")
+        #     return 0
+        # elif key == 105:  # 'i'
+        #     xvar.mlx.mlx_sync(xvar.mlx_ptr, Mlx.SYNC_IMAGE_WRITABLE, xvar.img_2.img)
+        #     # fill image in white
+        #     for offset in range(0, xvar.img_2.sl * 100, 4):
+        #         xvar.img_2.data[offset:offset+4] = (0xFFFFFFFF).to_bytes(4, 'little')
+        #
+        #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 50, 50)
+        #
+        #     # update in red
+        #     for offset in range(0, xvar.img_2.sl * 100, 4):
+        #         xvar.img_2.data[offset:offset+4] = (0xFFFF0000).to_bytes(4, 'little')
+        #
+        #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 250, 250)
+        #     print("update image without sync - most likely 2 red squares")
+        #     return 0
 
 
 if __name__ == "__main__":
     maze = MazeGenerator()
     maze.genereate_maze()
     maze.save_file()
-    # size = 20
-    width = maze.width * 10 + 5 * (maze.height + 1)
-    height = maze.height * 10 + 5 * (maze.height + 1)
-    mlx = mlx.Mlx()
-    mlx_ptr = mlx.mlx_init()
-    # WITDTH == 20 * 20 == 400 == HEIGHT
-    win_ptr = mlx.mlx_new_window(mlx_ptr, width, height, "a-maze-ing")
-    # img_ptr = mlx.mlx_new_image(mlx_ptr, maze.width * size, maze.height * size,)
-    # put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, size)
-    mlx.mlx_hook(win_ptr, 33, 0, end, (mlx, mlx_ptr, win_ptr))
-    mlx.mlx_key_hook(win_ptr, gere_key, (maze, mlx, mlx_ptr, win_ptr, width, height))
-    # mlx.mlx_loop_hook(mlx_ptr, render_handler, (mlx, mlx_ptr, win_ptr, img_ptr))
-    # mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, size))
-    mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, width, height))
-    # mlx.mlx_loop_hook(mlx_ptr, loop_render, (maze.maze, mlx, mlx_ptr, win_ptr, size))
-    # mlx.mlx_hook(win_ptr, 2, 0, key_hook, (maze.maze, mlx, mlx_ptr, win_ptr, size))
-    mlx.mlx_loop(mlx_ptr)
+    render = Render()
+    render.maze = maze
+    render.start()
     
-#    print(f"{maze.dict_graph}")
+    # size = 20
+#     width = maze.width * 10 + 5 * (maze.height + 1)
+#     height = maze.height * 10 + 5 * (maze.height + 1)
+#     mlx = mlx.Mlx()
+#     mlx_ptr = mlx.mlx_init()
+#     # WITDTH == 20 * 20 == 400 == HEIGHT
+#     win_ptr = mlx.mlx_new_window(mlx_ptr, width, height, "a-maze-ing")
+#     # img_ptr = mlx.mlx_new_image(mlx_ptr, maze.width * size, maze.height * size,)
+#     # put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, size)
+#     mlx.mlx_hook(win_ptr, 33, 0, end, (mlx, mlx_ptr, win_ptr))
+#     mlx.mlx_key_hook(win_ptr, gere_key, (maze, mlx, mlx_ptr, win_ptr, width, height))
+#     # mlx.mlx_loop_hook(mlx_ptr, render_handler, (mlx, mlx_ptr, win_ptr, img_ptr))
+#     # mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, size))
+#     mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, width, height))
+#     # mlx.mlx_loop_hook(mlx_ptr, loop_render, (maze.maze, mlx, mlx_ptr, win_ptr, size))
+#     # mlx.mlx_hook(win_ptr, 2, 0, key_hook, (maze.maze, mlx, mlx_ptr, win_ptr, size))
+#     mlx.mlx_loop(mlx_ptr)
+#
+# #    print(f"{maze.dict_graph}")
