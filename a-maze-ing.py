@@ -113,6 +113,7 @@ class Kruskal():
     ) -> list[tuple[Node, Node]]:
         adjacency_list = Kruskal.create_edge(maze, height, width)
         mst = []
+        # breakpoint()
         for t in adjacency_list:
             if (
                 Kruskal.find_set(t[0]) != Kruskal.find_set(t[1])
@@ -139,6 +140,7 @@ class Kruskal():
         maze: list[list[Node]],
         height: int, width: int
     ) -> None:
+        # breakpoint()
         mst = Kruskal.kruskal_perfect(maze, height, width)
         max_y = len(maze)
         max_x = len(maze[0])
@@ -213,14 +215,16 @@ class MazeGenerator:
 
     def genereate_maze(self) -> None:
         self.validate_config()
-        self.maze = [
-            [Node(j, i) for i in range(self.dict_graph["width"])]
-            for j in range(self.dict_graph["height"])
-        ]
+        if not self.maze:
+            self.maze = [
+                [Node(j, i) for i in range(self.dict_graph["width"])]
+                for j in range(self.dict_graph["height"])
+            ]
         self.logo()
         if self.perfect:
             mst = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
         else:
+            print("imperfeito")
             mst = Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
         path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
         path_str = ""
@@ -356,8 +360,31 @@ class MazeGenerator:
         except Exception:
             print("Error while tring to save output file.")
 
+# BACKGROUND-COLOR
+#1E2956 AZUL
+#2E2058 BLUE-VIOLET
+#2C1059 VIOLET
+#781359 RED-VIOLET
+# WALL-COLOR
+#FC360E ORANGE
+#FE7F14 YELLOW ORANGE
+#FFFE21 YELLOW
+#69B21B YELLOW GREEN
+# 42-COLOR
+#96C696 BLUE GREEN
+#9DDB58 GREEN
+#FF0109 RED
+#C9501B RED-ORANGE
 
-
+class Render:
+    def __init__(self) -> None:
+        self.colors = [
+                    # (BACKGROUND, WALL, 42-COLOR)
+                    (0x56291EFF, 0x0E36FCFF, 0x96C696FF),  # Set 1: Azul, Orange, Blue Green
+                    (0x58202EFF, 0x147FFEFF, 0x58DB9DFF),  # Set 2: Blue-Violet, Yellow Orange, Green
+                    (0x59102CFF, 0x21FEFFFF, 0x0901FFFF),  # Set 3: Violet, Yellow, Red
+                    (0x591378FF, 0x1BB269FF, 0x1B50C9FF),  # Set 4: Red-Violet, Yellow Green, Red-Orange
+                ]
 def end(data):
     print("Encerrrando janela....")
     mlx, mlx_ptr, win_ptr = data
@@ -400,53 +427,79 @@ def put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height):
             if node.wall & 8 == 8 and not node.fix:
                 # print("x:", pos_x, "y:", pos_y, "ate ", "x:", end="")
                 paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y)
+            if node.fix:
+                paint_block(mlx, mlx_ptr, win_ptr, color, 10, 10, pos_x + 5, pos_y + 5)
             contador += 1
             pos_y += 15
-            print("y:", pos_y)
+            # print("y:", pos_y)
         pos_x += 15
-        print("x:", pos_x)
-    print("x:", pos_x, "y:", pos_y)
+        # print("x:", pos_x)
+    # print("x:", pos_x, "y:", pos_y)
     print(contador)
 
-
-# COR PRINCIPAL == 101821
-# COR PAREDE == 7d92ab
-# COR CAMINHO == 65d4ee
-# COR 42 == cdd9e7
-# tamanho de cada quadrado == 20px
-
 def render_maze(params):
-    maze, mlx, mlx_ptr, win_ptr, size = params
-    print("Renderizando Labirinto")
-    put_block_pixel(maze, mlx, mlx_ptr, win_ptr, size)
-
-foi_renderizado = False
-
-def loop_render(params):
-    global foi_renderizado
-    # Se ainda não foi pintado, desenha tudo e trava a função
-    if not foi_renderizado:
-        maze_data, mlx_obj, mlx_p, win_p, sz = params
-        print("Renderizando Labirinto no WSL...")
-        put_block_pixel(maze_data, mlx_obj, mlx_p, win_p, sz)
-        foi_renderizado = True
-
-def key_hook(params, keycode):
     maze, mlx, mlx_ptr, win_ptr, width, height = params
-    print(f"Tecla acionada! Forçando desenho imediato...")
+    print("Renderizando Labirinto")
     put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
 
-def render_handler(params):
-    mlx, mlx_ptr, win_ptr, img_ptr = params
-    # Joga a imagem inteira na janela na posição x=0, y=0
-    mlx.mlx_put_image_to_window(mlx_ptr, win_ptr, img_ptr, 0, 0)
-
-def gere_mouse_1(button, x, y, params):
+def gere_key(key, params):
+    print(f"Got key {key}: ", end="")
     maze, mlx, mlx_ptr, win_ptr, width, height = params
-    print(f"Got mouse : {button} at {x}x{y}")
-    if button == 1:
-        put_block_pixel(maze, mlx, mlx_ptr, win_ptr, width, height)
-        return 0
+
+    if key == 113:  # 'q'
+        for line in maze.maze:
+            for node in line:
+                node.wall = 15
+                node.parent = node
+                node.rank = 0
+        new_seed = random.randint(0, 10000)
+        print("New seed:", new_seed)
+        random.seed(new_seed)
+        maze.seed = new_seed
+        maze.genereate_maze()
+        maze.save_file()
+        mlx.mlx_clear_window(mlx_ptr, win_ptr)
+        put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, width, height)
+        
+    # elif key == 119:  # 'w'
+    #     xvar.mlx.mlx_do_key_autorepeaton(xvar.mlx_ptr)
+    #     print("key repeat on")
+    #     return 0
+    # elif key == 101:  # 'e'
+    #     draw_colormap(xvar)
+    #     print("colormap")
+    #     return 0
+    # elif key == 114:  # 'r'
+    #     xvar.mlx.mlx_mouse_hide(xvar.mlx_ptr)
+    #     print("mouse hide")
+    #     return 0
+    # elif key == 116:  # 't'
+    #     xvar.mlx.mlx_mouse_show(xvar.mlx_ptr)
+    #     print("mouse show")
+    #     return 0
+    # elif key == 121:  # 'y'
+    #     xvar.mlx.mlx_mouse_move(xvar.win_1, 200, 200)
+    #     print("mouse move")
+    #     return 0
+    # elif key == 117:  # 'u'
+    #     ret, x, y = xvar.mlx.mlx_mouse_get_pos(xvar.win_1)
+    #     print(f"current mouse pos is {x} x {y}")
+    #     return 0
+    # elif key == 105:  # 'i'
+    #     xvar.mlx.mlx_sync(xvar.mlx_ptr, Mlx.SYNC_IMAGE_WRITABLE, xvar.img_2.img)
+    #     # fill image in white
+    #     for offset in range(0, xvar.img_2.sl * 100, 4):
+    #         xvar.img_2.data[offset:offset+4] = (0xFFFFFFFF).to_bytes(4, 'little')
+    #
+    #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 50, 50)
+    #
+    #     # update in red
+    #     for offset in range(0, xvar.img_2.sl * 100, 4):
+    #         xvar.img_2.data[offset:offset+4] = (0xFFFF0000).to_bytes(4, 'little')
+    #
+    #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 250, 250)
+    #     print("update image without sync - most likely 2 red squares")
+    #     return 0
 
 
 if __name__ == "__main__":
@@ -463,9 +516,10 @@ if __name__ == "__main__":
     # img_ptr = mlx.mlx_new_image(mlx_ptr, maze.width * size, maze.height * size,)
     # put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, size)
     mlx.mlx_hook(win_ptr, 33, 0, end, (mlx, mlx_ptr, win_ptr))
+    mlx.mlx_key_hook(win_ptr, gere_key, (maze, mlx, mlx_ptr, win_ptr, width, height))
     # mlx.mlx_loop_hook(mlx_ptr, render_handler, (mlx, mlx_ptr, win_ptr, img_ptr))
     # mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, size))
-    mlx.mlx_mouse_hook(win_ptr, gere_mouse_1, (maze.maze, mlx, mlx_ptr, win_ptr, width, height))
+    mlx.mlx_expose_hook(win_ptr, render_maze, (maze.maze, mlx, mlx_ptr, win_ptr, width, height))
     # mlx.mlx_loop_hook(mlx_ptr, loop_render, (maze.maze, mlx, mlx_ptr, win_ptr, size))
     # mlx.mlx_hook(win_ptr, 2, 0, key_hook, (maze.maze, mlx, mlx_ptr, win_ptr, size))
     mlx.mlx_loop(mlx_ptr)
