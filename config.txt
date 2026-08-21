@@ -1,9 +1,18 @@
 WIDTH=20
-HEIGHT=15
-ENTRY=0,0
-EXIT=19,14
+HEIGHT=20
+ENTRY=5,1
+EXIT=17,16
 OUTPUT_FILE=maze.txt
-
-PERFECT=True
+PERFECT=False
 SEED=42
-SEED=100
+
+# [Recommended values]
+# WIDTH=20
+# HEIGHT=20
+# ENTRY=0,0
+# EXIT=19,19
+# OUTPUT_FILE=maze.txt
+# PERFECT=True
+# SEED=
+# If you want to generate the same maze again, you must choose a number
+# for the seed and choose a Perfect value between True and False

@@ -1,12 +1,12 @@
 # **************************************************************************** #
 #                                                                              #
 #                                                         :::      ::::::::    #
-#    config.py                                          :+:      :+:    :+:    #
+#    parse_config.py                                    :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
 #    By: eguedes- <eguedes-@student.42sp.org.br>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/08/17 11:21:31 by eguedes-          #+#    #+#              #
-#    Updated: 2026/08/20 09:46:05 by eguedes-         ###   ########.fr        #
+#    Updated: 2026/08/21 15:19:03 by eguedes-         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -129,6 +129,13 @@ def v_exit(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
             print("'Exit' should have only 2 integers numbers")
             print_error()
         dict_graph["exit"] = (int(parts[0]), int(parts[1]))
+        if (
+            dict_graph["exit"] > dict_graph["exit"]
+            or dict_graph["exit"] > dict_graph["exit"]
+        ):
+            print("'Exit' should be equal or less than 'witdth'", end="")
+            print("or 'height' and must be positive.")
+            print_error()
     except Exception:
         print("'Exit' should be in format <int,int> with no spaces")
         print_error()
