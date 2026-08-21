@@ -99,7 +99,7 @@ class Render:
             pos_x += 15
             # print("x:", pos_x)
         # print("x:", pos_x, "y:", pos_y)
-        print(contador)
+        # print(contador)
 
     def put_entry_exit(self, params) -> None:
 
@@ -176,14 +176,14 @@ class Render:
     def render_maze(self, params):
 
         maze, mlx, mlx_ptr, win_ptr, width, height = params
-        print("Renderizando Labirinto")
+        # print("Renderizando Labirinto")
         self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, width, height)
         x, y = maze.entry[0], maze.entry[1]
         self.put_entry_exit(params)
 
 
     def gere_key(self, key, params):
-        print(f"Got key {key}: ", end="")
+        # print(f"Got key {key}: ", end="")
         maze, mlx, mlx_ptr, win_ptr, width, height = params
 
         if key == 113:  # 'q'
