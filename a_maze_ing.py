@@ -25,8 +25,6 @@ class Node:
     def __init__(self, x: int, y: int) -> None:
         self.parent = self
         self.rank = 0
-        self.distance = -1
-        self.visited = "white"
         self.wall = 15
         self.cords = (x, y)
         self.fix = False
@@ -232,12 +230,14 @@ class MazeGenerator:
         self.maze: list[list[Node]] = []
         self.path = ""
 
-    def genereate_maze(self) -> None:        
+
+    def genereate_maze(self) -> None:
         self.maze = [
             [Node(j, i) for i in range(self.dict_graph["width"])]
             for j in range(self.dict_graph["height"])
         ]
-        self.logo()
+        if self.width > 14 and self.height > 14:
+            self.logo()
         if self.perfect:
             Kruskal.kruskal_perfect(self.maze, self.height, self.width)
         else:
@@ -253,7 +253,6 @@ class MazeGenerator:
                 self.path_str += "W"
             if self.path[i].cords[1] < self.path[i + 1].cords[1]:
                 self.path_str += "E"
-
 
         # print(f"{self.entry[0]},{self.entry[1]}\n{self.exit_maze[0]},{self.exit_maze[1]}")
         # print(path_str)
@@ -283,11 +282,11 @@ class MazeGenerator:
         self.maze[mid_h + 2][mid_w + 2].fix = True
         self.maze[mid_h + 2][mid_w + 3].fix = True
 
-        if self.maze[self.entry[0] - 1][self.entry[1] - 1].fix:
+        if self.maze[self.entry[1]][self.entry[0]].fix:
             print("Maze entry is the same as 42 logo")
             exit(1)
 
-        if self.maze[self.exit_maze[0] - 1][self.exit_maze[1] - 1].fix:
+        if self.maze[self.exit_maze[1]][self.exit_maze[0]].fix:
             print("Maze exit is the same as 42 logo")
             exit(1)
 

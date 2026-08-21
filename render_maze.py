@@ -48,17 +48,19 @@ class Render:
         self.colors = self.colors.next
 
     def start(self):
-        width: int = self.maze_obj.width * 10 + 5 * (self.maze_obj.height + 1)
+        width: int = self.maze_obj.width * 10 + 5 * (self.maze_obj.width + 1)
         height = self.maze_obj.height * 10 + 5 * (self.maze_obj.height + 1)
         mlx_obj = mlx.Mlx()
         mlx_ptr = mlx_obj.mlx_init()
-        win_ptr = mlx_obj.mlx_new_window(mlx_ptr, width, height, "a-maze-ing")
+        win_ptr = mlx_obj.mlx_new_window(mlx_ptr, width, height + 300, "a-maze-ing")
         params = (self.maze_obj, mlx_obj, mlx_ptr, win_ptr, width, height)
         mlx_obj.mlx_hook(win_ptr, 33, 0, self.end, (mlx_obj, mlx_ptr, win_ptr))
         mlx_obj.mlx_key_hook(win_ptr, self.gere_key, params)
         mlx_obj.mlx_expose_hook(win_ptr, self.render_maze, params)
         self.render_maze(params)
+        mlx_obj.mlx_string_put(mlx_ptr, win_ptr, 0, height + 100, 0xFFFFFFFF, "testando a string")
         mlx_obj.mlx_loop(mlx_ptr)
+        
 
     def end(self, data):
         print("Encerrrando janela....")
@@ -79,27 +81,38 @@ class Render:
         main_color = self.colors.color[0]  #101821 # Vermelho forte (Para ter certeza que está pintando)
         wall_color = self.colors.color[1]  #7D92AB # Verde forte
         ft_color = self.colors.color[2]
-        self.paint_block(mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y)
+        self.paint_block(
+            mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y
+        )
         for line in maze:
             pos_y = 0
             for node in line:
                 if node.wall & 1 == 1:
-                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x, pos_y)
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x, pos_y
+                    )
                 if node.wall & 2 == 2:
-                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y + 20 - 5)
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, wall_color,
+                        20, 5, pos_x, pos_y + 20 - 5
+                    )
                 if node.wall & 4 == 4:
-                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x + 20 - 5, pos_y + 0)
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, wall_color,
+                        5, 20, pos_x + 20 - 5, pos_y + 0
+                    )
                 if node.wall & 8 == 8:
-                    self.paint_block(mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y)
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, wall_color,
+                        20, 5, pos_x, pos_y
+                    )
                 if node.fix:
-                    self.paint_block(mlx, mlx_ptr, win_ptr, ft_color, 10, 10, pos_x + 5, pos_y + 5)
-                contador += 1
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, ft_color,
+                        10, 10, pos_x + 5, pos_y + 5
+                    )
                 pos_y += 15
-                # print("y:", pos_y)
             pos_x += 15
-            # print("x:", pos_x)
-        # print("x:", pos_x, "y:", pos_y)
-        # print(contador)
 
     def put_entry_exit(self, params) -> None:
 
@@ -131,7 +144,6 @@ class Render:
         if not maze.path:
             print("Path not generated")
             return
-        
 
         for i in range(len(maze.path)):
 
@@ -177,7 +189,7 @@ class Render:
 
         maze, mlx, mlx_ptr, win_ptr, width, height = params
         # print("Renderizando Labirinto")
-        self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, width, height)
+        self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, height, width)
         x, y = maze.entry[0], maze.entry[1]
         self.put_entry_exit(params)
 
@@ -187,7 +199,6 @@ class Render:
         maze, mlx, mlx_ptr, win_ptr, width, height = params
 
         if key == 113:  # 'q'
-               
             random.seed(None)
             new_seed = random.randint(0, 100000)
             maze.seed = new_seed
