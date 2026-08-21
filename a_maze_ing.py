@@ -15,6 +15,7 @@ import random
 import sys
 from typing import Any
 from parse_config import validate_config
+from render_maze import Render
 
 
 # mst == minimum spanning tree
@@ -39,7 +40,7 @@ class Bfs():
         exit_maze: tuple[int, int]
     ) -> list[Any]:
 
-        start_node: set[Node] = maze[entry[0]][entry[1]]
+        start_node: set[Node] = maze[entry[1]][entry[0]]
         visited: set[set[Node]] = {start_node}
 
         queue: list = [(start_node, [start_node])]
@@ -49,7 +50,7 @@ class Bfs():
         while queue:
             current, path = queue.pop(0)
 
-            if current.cords == exit:
+            if current.cords == (exit_maze[1], exit_maze[0]):
                 return path
 
             y, x = current.cords
@@ -231,8 +232,7 @@ class MazeGenerator:
         self.maze: list[list[Node]] = []
         self.path = ""
 
-    def genereate_maze(self) -> None:
-        self.dict_graph = validate_config()
+    def genereate_maze(self) -> None:        
         self.maze = [
             [Node(j, i) for i in range(self.dict_graph["width"])]
             for j in range(self.dict_graph["height"])
@@ -242,18 +242,18 @@ class MazeGenerator:
             Kruskal.kruskal_perfect(self.maze, self.height, self.width)
         else:
             Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
-        path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
-        path_str = ""
-        for i in range(len(path) - 1):
-            if path[i].cords[0] > path[i + 1].cords[0]:
-                path_str += "N"
-            if path[i].cords[0] < path[i + 1].cords[0]:
-                path_str += "S"
-            if path[i].cords[1] > path[i + 1].cords[1]:
-                path_str += "W"
-            if path[i].cords[1] < path[i + 1].cords[1]:
-                path_str += "E"
-        self.path = path_str
+        self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
+        self.path_str = ""
+        for i in range(len(self.path) - 1):
+            if self.path[i].cords[0] > self.path[i + 1].cords[0]:
+                self.path_str += "N"
+            if self.path[i].cords[0] < self.path[i + 1].cords[0]:
+                self.path_str += "S"
+            if self.path[i].cords[1] > self.path[i + 1].cords[1]:
+                self.path_str += "W"
+            if self.path[i].cords[1] < self.path[i + 1].cords[1]:
+                self.path_str += "E"
+
 
         # print(f"{self.entry[0]},{self.entry[1]}\n{self.exit_maze[0]},{self.exit_maze[1]}")
         # print(path_str)
@@ -302,7 +302,7 @@ class MazeGenerator:
                 file.write("\n")
                 file.write(f"{self.entry[0]},{self.entry[1]}\n")
                 file.write(f"{self.exit_maze[0]},{self.exit_maze[1]}\n")
-                file.write(self.path)
+                file.write(self.path_str)
             print(f"Maze succesfully save in: {self.output_file}")
 
         except OSError:
@@ -310,7 +310,11 @@ class MazeGenerator:
 
 
 if __name__ == "__main__":
+
     maze = MazeGenerator()
     maze.genereate_maze()
     maze.save_file()
+    render = Render(maze)
+    # render.maze = maze
+    render.start()
     # print(f"{maze.dict_graph}")
