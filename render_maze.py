@@ -52,13 +52,17 @@ class Render:
         height = self.maze_obj.height * 10 + 5 * (self.maze_obj.height + 1)
         mlx_obj = mlx.Mlx()
         mlx_ptr = mlx_obj.mlx_init()
-        win_ptr = mlx_obj.mlx_new_window(mlx_ptr, width, height + 300, "a-maze-ing")
+        win_ptr = mlx_obj.mlx_new_window(mlx_ptr, width, height + 100, "a-maze-ing")
         params = (self.maze_obj, mlx_obj, mlx_ptr, win_ptr, width, height)
         mlx_obj.mlx_hook(win_ptr, 33, 0, self.end, (mlx_obj, mlx_ptr, win_ptr))
         mlx_obj.mlx_key_hook(win_ptr, self.gere_key, params)
         mlx_obj.mlx_expose_hook(win_ptr, self.render_maze, params)
         self.render_maze(params)
-        mlx_obj.mlx_string_put(mlx_ptr, win_ptr, 0, height + 100, 0xFFFFFFFF, "testando a string")
+        mlx_obj.mlx_string_put(mlx_ptr, win_ptr, 0, height + 5, 0xFFFFFFFF, "1. Re-generate a new maze")
+        mlx_obj.mlx_string_put(mlx_ptr, win_ptr, 0, height + 25, 0xFFFFFFFF, "2. Show / Hide the shortest path")
+        mlx_obj.mlx_string_put(mlx_ptr, win_ptr, 0, height + 45, 0xFFFFFFFF, "3. Rotate the wall colours")
+        mlx_obj.mlx_string_put(mlx_ptr, win_ptr, 0, height + 65, 0xFFFFFFFF, "4. Quit")
+
         mlx_obj.mlx_loop(mlx_ptr)
         
 
@@ -197,8 +201,8 @@ class Render:
     def gere_key(self, key, params):
         # print(f"Got key {key}: ", end="")
         maze, mlx, mlx_ptr, win_ptr, width, height = params
-
-        if key == 113:  # 'q'
+        print(key)
+        if key == 49:  # '1'
             random.seed(None)
             new_seed = random.randint(0, 100000)
             maze.seed = new_seed
@@ -206,8 +210,8 @@ class Render:
             maze.maze = []
             maze.genereate_maze()
             maze.save_file()
-            mlx.mlx_clear_window(mlx_ptr, win_ptr)
-            self.next_color()
+            self.paint_block(mlx, mlx_ptr, win_ptr, 0x00000000, width, height, 0, 0)
+            # self.next_color()
             self.render_maze(params)
             self.show_path = False
 #            for line in maze.maze:
@@ -229,50 +233,17 @@ class Render:
 #            self.render_maze(params)
 #            self.show_path = False
 
-        # elif key == 119:  # 'w'
-        #     xvar.mlx.mlx_do_key_autorepeaton(xvar.mlx_ptr)
-        #     print("key repeat on")
-        #     return 0
-        # elif key == 101:  # 'e'
-        #     draw_colormap(xvar)
-        #     print("colormap")
-        #     return 0
-        # elif key == 114:  # 'r'
-        #     xvar.mlx.mlx_mouse_hide(xvar.mlx_ptr)
-        #     print("mouse hide")
-        #     return 0
-        # elif key == 116:  # 't'
-        #     xvar.mlx.mlx_mouse_show(xvar.mlx_ptr)
-        #     print("mouse show")
-        #     return 0
-
-        elif key == 121 or key == 16:  # 'y'
+        elif key == 50 or key == 16:  # '2'
             self.show_path = not self.show_path
-            mlx.mlx_clear_window(mlx_ptr, win_ptr)
+            self.paint_block(mlx, mlx_ptr, win_ptr, 0x00000000, width, height, 0, 0)
             self.render_maze(params)
             if self.show_path:
                 self.render_path(params)
             return 0
-        # elif key == 117:  # 'u'
-        #     ret, x, y = xvar.mlx.mlx_mouse_get_pos(xvar.win_1)
-        #     print(f"current mouse pos is {x} x {y}")
-        #     return 0
-        # elif key == 105:  # 'i'
-        #     xvar.mlx.mlx_sync(xvar.mlx_ptr, Mlx.SYNC_IMAGE_WRITABLE, xvar.img_2.img)
-        #     # fill image in white
-        #     for offset in range(0, xvar.img_2.sl * 100, 4):
-        #         xvar.img_2.data[offset:offset+4] = (0xFFFFFFFF).to_bytes(4, 'little')
-        #
-        #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 50, 50)
-        #
-        #     # update in red
-        #     for offset in range(0, xvar.img_2.sl * 100, 4):
-        #         xvar.img_2.data[offset:offset+4] = (0xFFFF0000).to_bytes(4, 'little')
-        #
-        #     xvar.mlx.mlx_put_image_to_window(xvar.mlx_ptr, xvar.win_1, xvar.img_2.img, 250, 250)
-        #     print("update image without sync - most likely 2 red squares")
-        #     return 0
-
-        else:
-            key
-            pass
+        elif key == 51:  # '3'
+            self.next_color()
+            self.render_maze(params)
+            if self.show_path:
+                self.render_path(params)
+        elif key == 52: # '4'
+            self.end((mlx, mlx_ptr, win_ptr))
