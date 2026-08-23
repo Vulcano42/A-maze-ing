@@ -17,7 +17,7 @@ from typing import Any
 
 def print_error() -> None:
 
-        error_msg: str = (
+    error_msg: str = (
         "Error while reading config.txt"
         "\nPlease open the file and write the values in the format:"
         "\nWIDTH=<int>0>"
@@ -27,10 +27,10 @@ def print_error() -> None:
         "\nOUTPUT_FILE=<*.txt>"
         "\nPERFECT=<bool>"
         "\nSEED=<int> or leave it blank"
-        )
+    )
 
-        print(error_msg)
-        exit(1)
+    print(error_msg)
+    exit(1)
 
 
 def v_width(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
@@ -74,7 +74,9 @@ def v_perfect(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         print_error()
 
 
-def v_output_file(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+def v_output_file(
+    dict_raw: dict[str, str], dict_graph: dict[str, Any]
+) -> None:
 
     try:
         dict_graph["output_file"] = str(dict_raw["output_file"])
@@ -89,7 +91,7 @@ def v_output_file(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 def v_seed(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
-    raw_seed:str = dict_raw.get("seed", "").strip()
+    raw_seed: str = dict_raw.get("seed", "").strip()
 
     if not raw_seed:
         dict_graph["seed"] = "random"
@@ -149,11 +151,11 @@ def compare_entry_exit(dict_graph: dict[str, Any]) -> None:
     entry_x, entry_y = dict_graph["entry"]
     exit_x, exit_y = dict_graph["exit"]
 
-    if not(0 <= entry_x < width and 0 <= entry_y < height):
+    if not (0 <= entry_x < width and 0 <= entry_y < height):
         print("Entry is outside the maze, please choose another number.")
         print_error()
 
-    if not(0 <= exit_x < width and 0 <= exit_y < height):
+    if not (0 <= exit_x < width and 0 <= exit_y < height):
         print("Exit is outside the maze, please choose another number.")
         print_error()
 
@@ -195,8 +197,9 @@ def validate_config() -> dict[str, Any]:
     v_exit(dict_raw, dict_graph)
     compare_entry_exit(dict_graph)
 
-    valid_keys: set[str] = {"width", "height", "entry", "exit", "output_file",
-                         "perfect", "seed"}
+    valid_keys: set[str] = {
+        "width", "height", "entry", "exit", "output_file", "perfect", "seed"
+        }
 
     for key in dict_graph.keys():
         if key not in valid_keys:
@@ -208,4 +211,3 @@ def validate_config() -> dict[str, Any]:
         print_error()
 
     return dict_graph
-

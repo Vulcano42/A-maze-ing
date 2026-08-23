@@ -12,7 +12,6 @@
 # **************************************************************************** #
 
 import random
-import sys
 from typing import Any
 from parse_config import validate_config
 from render_maze import Render
@@ -36,7 +35,7 @@ class Bfs():
         maze: list[list[Any]],
         entry: tuple[int, int],
         exit_maze: tuple[int, int]
-    ) -> list[Any]:
+    ) -> Any:
 
         start_node: set[Node] = maze[entry[1]][entry[0]]
         visited: set[set[Node]] = {start_node}
@@ -228,8 +227,7 @@ class MazeGenerator:
         self.perfect = bool(self.dict_graph["perfect"])
         self.output_file = self.dict_graph["output_file"]
         self.maze: list[list[Node]] = []
-        self.path = ""
-
+        self.path: list[Any] = []
 
     def genereate_maze(self) -> None:
         self.maze = [
