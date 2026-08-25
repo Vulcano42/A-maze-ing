@@ -2,22 +2,6 @@ from typing import Any
 import mlx
 import random
 
-# BACKGROUND-COLOR
-# 1E2956 AZUL
-# 2E2058 BLUE-VIOLET
-# 2C1059 VIOLET
-# 781359 RED-VIOLET
-# WALL-COLOR
-# FC360E ORANGE
-# FE7F14 YELLOW ORANGE
-# FFFE21 YELLOW
-# 69B21B YELLOW GREEN
-# 42-COLOR
-# 96C696 BLUE GREEN
-# 9DDB58 GREEN
-# FF0109 RED
-# C9501B RED-ORANGE
-
 
 class Render:
     def __init__(self, maze_obj: Any) -> None:
@@ -25,9 +9,6 @@ class Render:
         self.colors = self.select_color()
         self.maze_obj: MazeGenerator = maze_obj
         self.show_path: bool = False
-        # self.mlx = mlx.Mlx()
-        # self.mlx_ptr = self.mlx.mlx_init()
-        # self.win_ptr = self.mlx_new_window()
 
     class Color:
         def __init__(self, color: tuple[int, int, int]) -> None:
@@ -67,11 +48,11 @@ class Render:
             )
         mlx_obj.mlx_string_put(
             mlx_ptr, win_ptr, 0, height + 25, 0xFFFFFFFF,
-            "2. Show / Hide the shortest path"
+            "2. Show/Hide path"
             )
         mlx_obj.mlx_string_put(
             mlx_ptr, win_ptr, 0, height + 45, 0xFFFFFFFF,
-            "3. Rotate the wall colours"
+            "3. Change color"
             )
         mlx_obj.mlx_string_put(
             mlx_ptr, win_ptr, 0, height + 65, 0xFFFFFFFF,
@@ -221,45 +202,23 @@ class Render:
 
         maze, mlx, mlx_ptr, win_ptr, width, height = params
         self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, height, width)
-        # x, y = maze.entry[0], maze.entry[1]
         self.put_entry_exit(params)
 
     def gere_key(self, key: int, params: Any) -> None:
-        # print(f"Got key {key}: ", end="")
         maze, mlx, mlx_ptr, win_ptr, width, height = params
         print(key)
         if key == 49:  # '1'
             random.seed(None)
             new_seed = random.randint(0, 100000)
             maze.seed = new_seed
-            maze.dict_graph["seed"] = str(maze.seed)
             maze.maze = []
             maze.genereate_maze()
             maze.save_file()
             self.paint_block(
                 mlx, mlx_ptr, win_ptr, 0x00000000, width, height, 0, 0
             )
-            # self.next_color()
             self.render_maze(params)
             self.show_path = False
-#            for line in maze.maze:
-#                for node in line:
-#                    node.wall = 15
-#                    node.parent = node
-#                    node.rank = 0
-#            print("maze.seed: ", maze.seed)
-#            new_seed = random.randint(0, 10000)
-#            print("New seed:", new_seed)
-#            random.seed(new_seed)
-#            maze.seed = new_seed
-#            print("maze.seed: ", maze.seed)
-#            maze.dict_graph["seed"] = str(new_seed)
-#            maze.genereate_maze()
-#            maze.save_file()
-#            mlx.mlx_clear_window(mlx_ptr, win_ptr)
-#            self.next_color()
-#            self.render_maze(params)
-#            self.show_path = False
 
         elif key == 50 or key == 16:  # '2'
             self.show_path = not self.show_path
