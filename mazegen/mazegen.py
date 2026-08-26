@@ -54,8 +54,8 @@ class Bfs:
         Returns:
             list: A list of ordered nodes making up the correct path.
         """
-        start_node: type[Node] = maze[entry[1]][entry[0]]
-        visited: set[type[Node]] = {start_node}
+        start_node: Node = maze[entry[1]][entry[0]]
+        visited: set[Node] = {start_node}
 
         queue: list = [(start_node, [start_node])]
         max_y: int = len(maze)
@@ -271,9 +271,11 @@ class MazeGenerator:
         self.output_file = output_file
         self.maze: list[list[Node]] = []
         self.path: list[Any] = []
+        self.path_str = ""
 
-    def genereate_maze(self) -> None:
+    def generate_maze(self) -> None:
         """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
+        random.seed(self.seed)
         self.maze = [
             [Node(j, i) for i in range(self.width)]
             for j in range(self.height)
@@ -285,7 +287,6 @@ class MazeGenerator:
         else:
             Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
         self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
-        self.path_str = ""
         for i in range(len(self.path) - 1):
             if self.path[i].cords[0] > self.path[i + 1].cords[0]:
                 self.path_str += "N"
@@ -321,12 +322,14 @@ class MazeGenerator:
         self.maze[mid_h + 2][mid_w + 3].fix = True
 
         if self.maze[self.entry[1]][self.entry[0]].fix:
-            print("Maze entry is the same as 42 logo")
-            exit(1)
+            raise ValueError("Maze entry is the same as 42 logo")
 
         if self.maze[self.exit_maze[1]][self.exit_maze[0]].fix:
-            print("Maze exit is the same as 42 logo")
-            exit(1)
+            raise ValueError("Maze exit is the same as 42 logo")
+
+    def new_seed(self):
+        self.seed = random.randint(0, 100000)
+        random.seed(self.seed)
 
     def save_file(self) -> None:
         """Writes the hexadecimal bit matrix, coordinates, and path to the output file."""

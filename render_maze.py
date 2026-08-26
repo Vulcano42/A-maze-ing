@@ -1,13 +1,12 @@
 from typing import Any
 import mlx
-import random
-from src import MazeGenerator
+from .src import MazeGenerator
 
 
 class Render:
     def __init__(self, maze_obj: Any) -> None:
         self.colors = self.select_color()
-        self.maze_obj: type[MazeGenerator] = maze_obj
+        self.maze_obj: MazeGenerator = maze_obj
         self.show_path: bool = False
 
     class Color:
@@ -208,9 +207,7 @@ class Render:
         maze, mlx, mlx_ptr, win_ptr, width, height = params
         print(key)
         if key == 49:  # '1'
-            random.seed(None)
-            new_seed = random.randint(0, 100000)
-            maze.seed = new_seed
+            maze.new_seed()
             maze.maze = []
             maze.genereate_maze()
             maze.save_file()
