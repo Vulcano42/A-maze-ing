@@ -1,13 +1,13 @@
 from typing import Any
 import mlx
 import random
+from src import MazeGenerator
 
 
 class Render:
     def __init__(self, maze_obj: Any) -> None:
-        from a_maze_ing import MazeGenerator
         self.colors = self.select_color()
-        self.maze_obj: MazeGenerator = maze_obj
+        self.maze_obj: type[MazeGenerator] = maze_obj
         self.show_path: bool = False
 
     class Color:

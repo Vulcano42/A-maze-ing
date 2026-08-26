@@ -12,6 +12,9 @@ install:
 	$(PYTHON) -m pip install -e .
 
 run:
+	python -m venv env
+	source env/bin/activate &&
+	pip install mlx-2.2-py3-none-any.whl
 	$(PYTHON) $(SCRIPT) $(CONFIG)
 
 clean:
