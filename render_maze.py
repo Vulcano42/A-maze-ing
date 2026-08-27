@@ -1,6 +1,6 @@
 from typing import Any
 import mlx
-from .src import MazeGenerator
+from mazegen import MazeGenerator
 
 
 class Render:
@@ -8,7 +8,10 @@ class Render:
         self.colors = self.select_color()
         self.maze_obj: MazeGenerator = maze_obj
         self.show_path: bool = False
-
+        self.mlx_obj = mlx.Mlx()
+        self.mlx_ptr = None
+        self.win_ptr = None
+        self.params_r = ()
     class Color:
         def __init__(self, color: tuple[int, int, int]) -> None:
             self.color = color
@@ -31,34 +34,37 @@ class Render:
     def start(self) -> None:
         width: int = self.maze_obj.width * 10 + 5 * (self.maze_obj.width + 1)
         height = self.maze_obj.height * 10 + 5 * (self.maze_obj.height + 1)
-        mlx_obj = mlx.Mlx()
-        mlx_ptr = mlx_obj.mlx_init()
-        win_ptr = mlx_obj.mlx_new_window(
-            mlx_ptr, width, height + 100, "a-maze-ing"
+        self.mlx_ptr = self.mlx_obj.mlx_init()
+        self.win_ptr = self.mlx_obj.mlx_new_window(
+            self.mlx_ptr, width, height + 100, "a-maze-ing"
         )
-        params = (self.maze_obj, mlx_obj, mlx_ptr, win_ptr, width, height)
-        mlx_obj.mlx_hook(win_ptr, 33, 0, self.end, (mlx_obj, mlx_ptr, win_ptr))
-        mlx_obj.mlx_key_hook(win_ptr, self.gere_key, params)
-        mlx_obj.mlx_expose_hook(win_ptr, self.render_maze, params)
+        params = (self.maze_obj, self.mlx_obj, self.mlx_ptr, self.win_ptr, width, height)
+        self.params_r = params
+        self.mlx_obj.mlx_hook(self.win_ptr, 33, 0, self.end, (self.mlx_obj, self.mlx_ptr, self.win_ptr))
+        self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, params)
+        self.mlx_obj.mlx_expose_hook(self.win_ptr, self.render_maze, params)
         self.render_maze(params)
-        mlx_obj.mlx_string_put(
-            mlx_ptr, win_ptr, 0, height + 5, 0xFFFFFFFF,
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
             "1. Re-generate a new maze"
             )
-        mlx_obj.mlx_string_put(
-            mlx_ptr, win_ptr, 0, height + 25, 0xFFFFFFFF,
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr, self.win_ptr, 0, height + 25, 0xFFFFFFFF,
             "2. Show/Hide path"
             )
-        mlx_obj.mlx_string_put(
-            mlx_ptr, win_ptr, 0, height + 45, 0xFFFFFFFF,
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr, self.win_ptr, 0, height + 45, 0xFFFFFFFF,
             "3. Change color"
             )
-        mlx_obj.mlx_string_put(
-            mlx_ptr, win_ptr, 0, height + 65, 0xFFFFFFFF,
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr, self.win_ptr, 0, height + 65, 0xFFFFFFFF,
             "4. Quit"
             )
 
-        mlx_obj.mlx_loop(mlx_ptr)
+        # mlx_obj.mlx_loop(self.mlx_ptr)
+        #
+    def loop(self):
+        self.mlx_obj.mlx_loop(self.mlx_ptr)
 
     def end(self, data: Any) -> None:
         print("Encerrrando janela....")
@@ -90,6 +96,11 @@ class Render:
         width: int,
         height: int
     ) -> None:
+        # for linha in maze:
+        #     for no in linha:
+        #         print(no.wall, end=" ")
+        #     print()
+
         pos_y = 0
         pos_x = 0
         main_color = self.colors.color[0]
@@ -198,8 +209,13 @@ class Render:
         self.put_entry_exit(params)
 
     def render_maze(self, params: Any) -> None:
-
+        print("oi")
         maze, mlx, mlx_ptr, win_ptr, width, height = params
+        mlx.mlx_do_sync(mlx_ptr)
+        # for linha in maze.maze:
+        #     for no in linha:
+        #         print(no.wall, end=" ")
+        #     print()
         self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, height, width)
         self.put_entry_exit(params)
 
@@ -209,7 +225,7 @@ class Render:
         if key == 49:  # '1'
             maze.new_seed()
             maze.maze = []
-            maze.genereate_maze()
+            maze.generate_maze()
             maze.save_file()
             self.paint_block(
                 mlx, mlx_ptr, win_ptr, 0x00000000, width, height, 0, 0

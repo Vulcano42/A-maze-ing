@@ -10,7 +10,7 @@ saving the formatted result to a file, and starting visual rendering.
 """
 
 import random
-from typing import Any
+from typing import Any, Generator
 
 
 class Node:
@@ -142,10 +142,10 @@ class Kruskal:
     def kruskal_perfect(
         maze: list[list[Node]],
         height: int, width: int
-    ) -> list[tuple[Node, Node]]:
+    ) -> Generator[int, None, None]:
         """Generates a perfect maze (no loops and no isolated areas)."""
+        n = 0
         adjacency_list = Kruskal.create_edge(maze, height, width)
-        mst = []
         for t in adjacency_list:
             if (Kruskal.find_set(t[0]) != Kruskal.find_set(t[1]) and not
                     (t[0].fix or t[1].fix)):
@@ -161,9 +161,11 @@ class Kruskal:
                 if t[0].cords[1] < t[1].cords[1]:
                     t[0].wall = t[0].wall - 2**1
                     t[1].wall = t[1].wall - 2**3
-                mst.append((t[0], t[1]))
+                # mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
-        return mst
+                n += 1
+                yield n
+        # return mst
 
     @staticmethod
     def kruskal_imperfect(
@@ -273,17 +275,26 @@ class MazeGenerator:
         self.path: list[Any] = []
         self.path_str = ""
 
-    def generate_maze(self) -> None:
+    def generate_maze(self) -> Generator[int, None, None]:
         """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
-        random.seed(self.seed)
-        self.maze = [
-            [Node(j, i) for i in range(self.width)]
-            for j in range(self.height)
-        ]
-        if self.width > 14 and self.height > 14:
-            self.logo()
+        if not self.maze:
+            random.seed(self.seed)
+            self.maze = [
+                [Node(j, i) for i in range(self.width)]
+                for j in range(self.height)
+            ]
+            if self.width > 14 and self.height > 14:
+                self.logo()
         if self.perfect:
-            Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+            gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+            while True:
+                try:
+                    valor = next(gen)
+                    print("gen =",valor)
+                    yield valor
+                except StopIteration:
+                    yield -1
+                    break
         else:
             Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
         self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)

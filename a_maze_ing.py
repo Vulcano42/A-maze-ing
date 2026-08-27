@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+from os import truncate
 from typing import Any
-from .src import MazeGenerator
+from mazegen import MazeGenerator
 from render_maze import Render
 from parse_config import validate_config
+import time
 
 
 def main() -> None:
@@ -13,9 +15,17 @@ def main() -> None:
                          config["exit"], config["seed"],
                          config["perfect"], config["output_file"])
     render = Render(maze)
-    maze.generate_maze()
-    maze.save_file()
+    gen = maze.generate_maze()
     render.start()
+    while True:
+        value = next(gen)
+        print(value)
+        if value == -1:
+            break
+        render.render_maze(render.params_r)
+        # render.loop()
+        print("main")
+    maze.save_file()
 
 
 if __name__ == "__main__":
