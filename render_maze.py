@@ -42,7 +42,7 @@ class Render:
         self.params_r = params
         self.mlx_obj.mlx_hook(self.win_ptr, 33, 0, self.end, (self.mlx_obj, self.mlx_ptr, self.win_ptr))
         self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, params)
-        self.mlx_obj.mlx_expose_hook(self.win_ptr, self.render_maze, params)
+        # self.mlx_obj.mlx_expose_hook(self.win_ptr, self.render_maze, params)
         self.render_maze(params)
         self.mlx_obj.mlx_string_put(
             self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
@@ -151,7 +151,7 @@ class Render:
             )
         else:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 20, pos_x, pos_y
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 10, pos_x, pos_y + 5
             )
         if node.wall & 2 == 2:
             self.paint_block(
@@ -161,7 +161,7 @@ class Render:
         else:
             self.paint_block(
                 self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                20, 5, pos_x, pos_y + 20 - 5
+                10, 5, pos_x + 5, pos_y + 20 - 5
             )
 
         if node.wall & 4 == 4:
@@ -172,7 +172,7 @@ class Render:
         else:
             self.paint_block(
                 self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                5, 20, pos_x + 20 - 5, pos_y + 0
+                5, 10, pos_x + 20 - 5, pos_y + 5
             )
         if node.wall & 8 == 8:
             self.paint_block(
@@ -182,11 +182,16 @@ class Render:
         else:
             self.paint_block(
                 self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                20, 5, pos_x, pos_y
+                10, 5, pos_x + 5, pos_y
             )
         if node.fix:
             self.paint_block(
                 self.mlx_obj, self.mlx_ptr, self.win_ptr, ft_color,
+                10, 10, pos_x + 5, pos_y + 5
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
                 10, 10, pos_x + 5, pos_y + 5
             )
         self.mlx_obj.mlx_do_sync(self.mlx_ptr)

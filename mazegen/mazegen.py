@@ -285,6 +285,7 @@ class MazeGenerator:
             ]
             if self.width > 14 and self.height > 14:
                 self.logo()
+            yield
         if self.perfect:
             gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
             while True:

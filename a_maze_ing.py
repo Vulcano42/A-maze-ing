@@ -16,6 +16,7 @@ def main() -> None:
                          config["perfect"], config["output_file"])
     render = Render(maze)
     gen = maze.generate_maze()
+    next(gen)
     render.start()
     while True:
         try:
