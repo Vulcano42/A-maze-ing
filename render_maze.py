@@ -46,7 +46,7 @@ class Render:
         # self.mlx_obj.mlx_expose_hook(self.win_ptr, self.render_maze, params)
         self.mlx_obj.mlx_string_put(
             self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
-            "1. Re-generate a new maze"
+            "1. Regen new maze"
             )
         self.mlx_obj.mlx_string_put(
             self.mlx_ptr, self.win_ptr, 0, height + 25, 0xFFFFFFFF,
@@ -63,41 +63,44 @@ class Render:
 
         # mlx_obj.mlx_loop(self.mlx_ptr)
     def init_animation(self):
-        if self.maze_obj.animation:
+        # if self.maze_obj.animation:
 
-            gen = self.maze_obj.generate_maze()
-            next(gen)
-            self.render_maze(self.params_r)
-            self.mlx_obj.mlx_do_sync(self.mlx_ptr)
-            # self.start()
-            while True:
-                try:
-                    value = next(gen)
-                    print(value)
-                    if value == -1:
-                        break
+        gen = self.maze_obj.generate_maze()
+        next(gen)
+        self.render_maze(self.params_r)
+        self.mlx_obj.mlx_do_sync(self.mlx_ptr)
+        # self.start()
+        while True:
+            try:
+                value = next(gen)
+                print(value)
+                if value == -1:
+                    break
+                if self.maze_obj.animation:
                     self.animate_wall(value[0])
                     self.animate_wall(value[1])
-                    # self.loop()
-                    print("main")
-                except StopIteration:
-                    break
-            self.put_entry_exit(self.params_r)
-            self.maze_obj.save_file()
-            self.loop()
-        else:
-            print("teste")
-            # breakpoint()
-            test = self.maze_obj.generate_maze()
-            next(test)
-            print(self.maze_obj.maze)
-            for line in self.maze_obj.maze:
-                for node in line:
-                    print("amogus")
-                    print(node.wall, end=" ")
-                print()
+                # self.loop()
+                print("main")
+            except StopIteration:
+                break
+        if not self.maze_obj.animation:
             self.render_maze(self.params_r)
-            self.loop()
+        self.put_entry_exit(self.params_r)
+        self.maze_obj.save_file()
+        self.loop()
+        # else:
+        #     print("teste")
+        #     # breakpoint()
+        #     test = self.maze_obj.generate_maze()
+        #     next(test)
+        #     print(self.maze_obj.maze)
+        #     for line in self.maze_obj.maze:
+        #         for node in line:
+        #             print("amogus")
+        #             print(node.wall, end=" ")
+        #         print()
+        #     self.render_maze(self.params_r)
+        #     self.loop()
 
 
 
