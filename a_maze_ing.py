@@ -15,6 +15,7 @@ def main() -> None:
                          config["exit"], config["seed"],
                          config["perfect"], config["output_file"])
     render = Render(maze)
+    print(maze.animation)
     render.start()
     render.init_animation()
     # gen = maze.generate_maze()

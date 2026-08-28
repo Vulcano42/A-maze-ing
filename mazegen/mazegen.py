@@ -141,7 +141,8 @@ class Kruskal:
     @staticmethod
     def kruskal_perfect(
         maze: list[list[Node]],
-        height: int, width: int
+        height: int, width: int,
+        animation: bool
     ) -> Generator[tuple[Node, Node], None, None]:
         """Generates a perfect maze (no loops and no isolated areas)."""
         n = 0
@@ -164,16 +165,18 @@ class Kruskal:
                 # mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
                 n += 1
-                yield t
+                if animation == True:
+                    yield t
         # return mst
 
     @staticmethod
     def kruskal_imperfect(
         maze: list[list[Node]],
-        height: int, width: int
+        height: int, width: int,
+        animation: bool
     ) -> Generator[tuple[Node, Node], None, None]:
         """Generates an imperfect maze (with loops for game/Pac-Man mode)."""
-        yield from Kruskal.kruskal_perfect(maze, height, width)
+        yield from Kruskal.kruskal_perfect(maze, height, width, animation)
         max_y = len(maze)
         max_x = len(maze[0])
         while Kruskal.verify(maze, max_x, max_y):
@@ -221,7 +224,8 @@ class Kruskal:
                             if maze[y][x].cords[1] < neighbor.cords[1]:
                                 maze[y][x].wall = maze[y][x].wall - 2**1
                                 neighbor.wall = neighbor.wall - 2**3
-                            yield (maze[y][x], neighbor)
+                            if animation == True:
+                                yield (maze[y][x], neighbor)
 
     @staticmethod
     def verify(maze: list[list[Any]], max_x: int, max_y: int) -> bool:
@@ -275,9 +279,11 @@ class MazeGenerator:
         self.maze: list[list[Node]] = []
         self.path: list[Any] = []
         self.path_str = ""
+        self.animation: bool = False  # self.dict_graph["animation"]
 
     def generate_maze(self) -> Generator[tuple[Node, Node], None, None]:
         """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
+        print("hello")
         if not self.maze:
             random.seed(self.seed)
             self.maze = [
@@ -286,20 +292,22 @@ class MazeGenerator:
             ]
             if self.width > 14 and self.height > 14:
                 self.logo()
-            yield
+            if self.animation:
+                yield
         if self.perfect:
-            gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
-            while True:
-                try:
-                    valor = next(gen)
-                    print("gen =",valor)
-                    yield valor
-                except StopIteration:
-                    # yield -1
-                    break
+            gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width, self.animation)
+            if self.animation:
+                while True:
+                    try:
+                        valor = next(gen)
+                        print("gen =",valor)
+                        yield valor
+                    except StopIteration:
+                        # yield -1
+                        break
         else:
             # gen_perf = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
-            gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
+            gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height, self.width, self.animation)
             # while True:
             #     try:
             #         valor = next(gen_perf)
@@ -308,12 +316,13 @@ class MazeGenerator:
             #     except StopIteration:
             #         # yield -1
             #         break
-            while True:
-                try:
-                    value = next(gen_imperf)
-                    yield value
-                except StopIteration:
-                    break
+            if self.animation:
+                while True:
+                    try:
+                        value = next(gen_imperf)
+                        yield value
+                    except StopIteration:
+                        break
         self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
         for i in range(len(self.path) - 1):
             if self.path[i].cords[0] > self.path[i + 1].cords[0]:
