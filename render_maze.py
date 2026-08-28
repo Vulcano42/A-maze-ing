@@ -80,6 +80,7 @@ class Render:
                 print("main")
             except StopIteration:
                 break
+        self.put_entry_exit(self.params_r)
         self.maze_obj.save_file()
         self.loop()
 
@@ -163,7 +164,12 @@ class Render:
 
     def animate_wall(self, node):
         # mlx, mlx_ptr, win_ptr, main_color, width, height = self.params_r
-        pos_x, pos_y = node.cords[0] * 15, node.cords[1] * 15
+        # pos_x, pos_y = node.cords[0] * 15, node.cords[1] * 15
+        row, column = node.cords
+
+        pos_x = row * 15
+        pos_y = column * 15
+
         print("animacadiafj")
         main_color = self.colors.color[0]
         wall_color = self.colors.color[1]
@@ -217,6 +223,36 @@ class Render:
                 self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
                 10, 10, pos_x + 5, pos_y + 5
             )
+        # def has_wall(r: int, c: int, bit: int) -> bool:
+        #     if 0 <= r < maze.height and 0 <= c < maze.width:
+        #         return (maze.maze[r][c].wall & bit) != 0
+        #     return True
+
+        def has_wall(r: int, c: int, bit: int) -> bool:
+            if 0 <= r < self.maze_obj.height and 0 <= c < self.maze_obj.width:
+                return (self.maze_obj.maze[r][c].wall & bit) != 0
+            return True
+
+        # Quina Superior-Esquerda
+        if not (has_wall(row, column, 1) or has_wall(row, column, 8) or 
+                has_wall(row-1, column, 8) or has_wall(row, column-1, 1)):
+            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 5, pos_x, pos_y)
+
+        # Quina Superior-Direita
+        if not (has_wall(row, column, 1) or has_wall(row, column, 2) or 
+                has_wall(row-1, column, 2) or has_wall(row, column+1, 1)):
+            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 5, pos_x, pos_y + 15)
+
+        # Quina Inferior-Esquerda
+        if not (has_wall(row, column, 4) or has_wall(row, column, 8) or 
+                has_wall(row+1, column, 8) or has_wall(row, column-1, 4)):
+            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 5, pos_x + 15, pos_y)
+
+        # Quina Inferior-Direita
+        if not (has_wall(row, column, 4) or has_wall(row, column, 2) or 
+                has_wall(row+1, column, 2) or has_wall(row, column+1, 4)):
+            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 5, pos_x + 15, pos_y + 15)
+
         self.mlx_obj.mlx_do_sync(self.mlx_ptr)
 
     # def animation(self, nodes):
@@ -230,7 +266,7 @@ class Render:
         exit_y, exit_x = maze.exit_maze[1], maze.exit_maze[0]
 
         entry_color = 0xFF0000FF
-        exit_color = 0xFFFF0109
+        exit_color = 0xFFCCAA09
 
         self.paint_block(
             mlx, mlx_ptr, win_ptr, entry_color,
