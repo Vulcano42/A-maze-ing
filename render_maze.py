@@ -42,8 +42,8 @@ class Render:
         self.params_r = params
         self.mlx_obj.mlx_hook(self.win_ptr, 33, 0, self.end, (self.mlx_obj, self.mlx_ptr, self.win_ptr))
         self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, params)
+        # self.render_maze(params)
         # self.mlx_obj.mlx_expose_hook(self.win_ptr, self.render_maze, params)
-        self.render_maze(params)
         self.mlx_obj.mlx_string_put(
             self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
             "1. Re-generate a new maze"
@@ -62,7 +62,29 @@ class Render:
             )
 
         # mlx_obj.mlx_loop(self.mlx_ptr)
-        #
+    def init_animation(self):
+        gen = self.maze_obj.generate_maze()
+        next(gen)
+        self.render_maze(self.params_r)
+        self.mlx_obj.mlx_do_sync(self.mlx_ptr)
+        # self.start()
+        while True:
+            try:
+                value = next(gen)
+                print(value)
+                if value == -1:
+                    break
+                self.animate_wall(value[0])
+                self.animate_wall(value[1])
+                # self.loop()
+                print("main")
+            except StopIteration:
+                break
+        self.maze_obj.save_file()
+        self.loop()
+
+
+
     def loop(self):
         self.mlx_obj.mlx_loop(self.mlx_ptr)
 
@@ -142,6 +164,7 @@ class Render:
     def animate_wall(self, node):
         # mlx, mlx_ptr, win_ptr, main_color, width, height = self.params_r
         pos_x, pos_y = node.cords[0] * 15, node.cords[1] * 15
+        print("animacadiafj")
         main_color = self.colors.color[0]
         wall_color = self.colors.color[1]
         ft_color = self.colors.color[2]
@@ -286,12 +309,12 @@ class Render:
         if key == 49:  # '1'
             maze.new_seed()
             maze.maze = []
-            maze.generate_maze()
-            maze.save_file()
+            self.init_animation()
+            # maze.save_file()
             self.paint_block(
                 mlx, mlx_ptr, win_ptr, 0x00000000, width, height, 0, 0
             )
-            self.render_maze(params)
+            # self.render_maze(params)
             self.show_path = False
 
         elif key == 50 or key == 16:  # '2'

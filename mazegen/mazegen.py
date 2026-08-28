@@ -171,9 +171,9 @@ class Kruskal:
     def kruskal_imperfect(
         maze: list[list[Node]],
         height: int, width: int
-    ) -> None:
+    ) -> Generator[tuple[Node, Node], None, None]:
         """Generates an imperfect maze (with loops for game/Pac-Man mode)."""
-        Kruskal.kruskal_perfect(maze, height, width)
+        yield from Kruskal.kruskal_perfect(maze, height, width)
         max_y = len(maze)
         max_x = len(maze[0])
         while Kruskal.verify(maze, max_x, max_y):
@@ -221,6 +221,7 @@ class Kruskal:
                             if maze[y][x].cords[1] < neighbor.cords[1]:
                                 maze[y][x].wall = maze[y][x].wall - 2**1
                                 neighbor.wall = neighbor.wall - 2**3
+                            yield (maze[y][x], neighbor)
 
     @staticmethod
     def verify(maze: list[list[Any]], max_x: int, max_y: int) -> bool:
@@ -297,7 +298,22 @@ class MazeGenerator:
                     # yield -1
                     break
         else:
-            Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
+            # gen_perf = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+            gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
+            # while True:
+            #     try:
+            #         valor = next(gen_perf)
+            #         print("gen =",valor)
+            #         yield valor
+            #     except StopIteration:
+            #         # yield -1
+            #         break
+            while True:
+                try:
+                    value = next(gen_imperf)
+                    yield value
+                except StopIteration:
+                    break
         self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
         for i in range(len(self.path) - 1):
             if self.path[i].cords[0] > self.path[i + 1].cords[0]:

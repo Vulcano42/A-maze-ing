@@ -15,23 +15,25 @@ def main() -> None:
                          config["exit"], config["seed"],
                          config["perfect"], config["output_file"])
     render = Render(maze)
-    gen = maze.generate_maze()
-    next(gen)
     render.start()
-    while True:
-        try:
-            value = next(gen)
-            print(value)
-            if value == -1:
-                break
-            render.animate_wall(value[0])
-            render.animate_wall(value[1])
-            # render.loop()
-            print("main")
-        except StopIteration:
-            render.loop()
-            break
-    maze.save_file()
+    render.init_animation()
+    # gen = maze.generate_maze()
+    # next(gen)
+    # render.start()
+    # while True:
+    #     try:
+    #         value = next(gen)
+    #         print(value)
+    #         if value == -1:
+    #             break
+    #         render.animate_wall(value[0])
+    #         render.animate_wall(value[1])
+    #         # render.loop()
+    #         print("main")
+    #     except StopIteration:
+    #         render.loop()
+    #         break
+    # maze.save_file()
 
 
 if __name__ == "__main__":
