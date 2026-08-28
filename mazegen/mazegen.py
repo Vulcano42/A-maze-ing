@@ -142,7 +142,7 @@ class Kruskal:
     def kruskal_perfect(
         maze: list[list[Node]],
         height: int, width: int
-    ) -> Generator[int, None, None]:
+    ) -> Generator[tuple[Node, Node], None, None]:
         """Generates a perfect maze (no loops and no isolated areas)."""
         n = 0
         adjacency_list = Kruskal.create_edge(maze, height, width)
@@ -164,7 +164,7 @@ class Kruskal:
                 # mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
                 n += 1
-                yield n
+                yield t
         # return mst
 
     @staticmethod
@@ -275,7 +275,7 @@ class MazeGenerator:
         self.path: list[Any] = []
         self.path_str = ""
 
-    def generate_maze(self) -> Generator[int, None, None]:
+    def generate_maze(self) -> Generator[tuple[Node, Node], None, None]:
         """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
         if not self.maze:
             random.seed(self.seed)
@@ -293,7 +293,7 @@ class MazeGenerator:
                     print("gen =",valor)
                     yield valor
                 except StopIteration:
-                    yield -1
+                    # yield -1
                     break
         else:
             Kruskal.kruskal_imperfect(self.maze, self.height, self.width)

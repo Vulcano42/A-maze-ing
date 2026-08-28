@@ -9,7 +9,7 @@ all: fclean install run
 
 install:
 	cd mlx-2.2 && tar -xzf mlx-2.2.tgz
-	python -m venv env
+	$(PYTHON) -m venv env
 	$(ENV) && pip install mlx-2.2/ubuntu/mlx-2.2-py3-none-any.whl build
 
 # $(PYTHON) -m pip install setuptools wheel flake8 mypy build mlx

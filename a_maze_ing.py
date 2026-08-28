@@ -18,13 +18,18 @@ def main() -> None:
     gen = maze.generate_maze()
     render.start()
     while True:
-        value = next(gen)
-        print(value)
-        if value == -1:
+        try:
+            value = next(gen)
+            print(value)
+            if value == -1:
+                break
+            render.animate_wall(value[0])
+            render.animate_wall(value[1])
+            # render.loop()
+            print("main")
+        except StopIteration:
+            render.loop()
             break
-        render.render_maze(render.params_r)
-        # render.loop()
-        print("main")
     maze.save_file()
 
 

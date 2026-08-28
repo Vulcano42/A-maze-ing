@@ -139,6 +139,62 @@ class Render:
                 pos_y += 15
             pos_x += 15
 
+    def animate_wall(self, node):
+        # mlx, mlx_ptr, win_ptr, main_color, width, height = self.params_r
+        pos_x, pos_y = node.cords[0] * 15, node.cords[1] * 15
+        main_color = self.colors.color[0]
+        wall_color = self.colors.color[1]
+        ft_color = self.colors.color[2]
+        if node.wall & 1 == 1:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color, 5, 20, pos_x, pos_y
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 20, pos_x, pos_y
+            )
+        if node.wall & 2 == 2:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color,
+                20, 5, pos_x, pos_y + 20 - 5
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
+                20, 5, pos_x, pos_y + 20 - 5
+            )
+
+        if node.wall & 4 == 4:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color,
+                5, 20, pos_x + 20 - 5, pos_y + 0
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
+                5, 20, pos_x + 20 - 5, pos_y + 0
+            )
+        if node.wall & 8 == 8:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color,
+                20, 5, pos_x, pos_y
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
+                20, 5, pos_x, pos_y
+            )
+        if node.fix:
+            self.paint_block(
+                self.mlx_obj, self.mlx_ptr, self.win_ptr, ft_color,
+                10, 10, pos_x + 5, pos_y + 5
+            )
+        self.mlx_obj.mlx_do_sync(self.mlx_ptr)
+
+    # def animation(self, nodes):
+
+
+
     def put_entry_exit(self, params: Any) -> None:
 
         maze, mlx, mlx_ptr, win_ptr, width, height = params
@@ -211,7 +267,7 @@ class Render:
     def render_maze(self, params: Any) -> None:
         print("oi")
         maze, mlx, mlx_ptr, win_ptr, width, height = params
-        mlx.mlx_do_sync(mlx_ptr)
+        # mlx.mlx_do_sync(mlx_ptr)
         # for linha in maze.maze:
         #     for no in linha:
         #         print(no.wall, end=" ")
