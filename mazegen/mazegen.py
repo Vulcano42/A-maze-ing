@@ -277,23 +277,24 @@ class MazeGenerator:
         self.path_str = ""
         self.animation = False
 
-    def generate_maze(self) -> Generator[tuple[Node, Node], None, None]:
+    def generate_maze(self) -> Generator[tuple, None, None]:
         """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
+        print(self.seed)
         if not self.maze:
-            random.seed(self.seed)
+            if self.seed != "random":
+                random.seed(self.seed)
             self.maze = [
                 [Node(j, i) for i in range(self.width)]
                 for j in range(self.height)
             ]
             if self.width > 14 and self.height > 14:
                 self.logo()
-            yield
+            yield ()
         if self.perfect:
             gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
             while True:
                 try:
                     valor = next(gen)
-                    print("gen =",valor)
                     yield valor
                 except StopIteration:
                     # yield -1

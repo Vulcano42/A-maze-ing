@@ -95,7 +95,6 @@ def v_seed(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
     if not raw_seed:
         dict_graph["seed"] = "random"
-        random.seed(None)
         return
 
     try:
