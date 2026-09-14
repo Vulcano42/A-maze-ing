@@ -4,7 +4,7 @@ from mazegen import MazeGenerator
 
 
 class Render:
-    def __init__(self, maze_obj: Any) -> None:
+    def __init__(self, maze_obj: Any, animation: bool = False) -> None:
         self.colors = self.select_color()
         self.maze_obj: MazeGenerator = maze_obj
         self.show_path: bool = False
@@ -12,6 +12,7 @@ class Render:
         self.mlx_ptr = None
         self.win_ptr = None
         self.params: tuple = ()
+        self.animation = animation
 
     class Color:
         def __init__(self, color: tuple[int, int, int]) -> None:
@@ -41,8 +42,7 @@ class Render:
         )
         self.params = (self.maze_obj, self.mlx_obj, self.mlx_ptr,
                        self.win_ptr, width, height)
-        self.mlx_obj.mlx_hook(self.win_ptr, 33, 0, self.end,
-                              (self.mlx_obj, self.mlx_ptr, self.win_ptr))
+        self.mlx_obj.mlx_hook(self.win_ptr, 33, 0, self.end_event, self.mlx_obj)
         self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, self.params)
         self.mlx_obj.mlx_string_put(
             self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
@@ -69,12 +69,12 @@ class Render:
         while True:
             try:
                 value = next(gen)
-                if self.maze_obj.animation:
+                if self.animation:
                     self.animate_wall(value[0])
                     self.animate_wall(value[1])
             except StopIteration:
                 break
-        if not self.maze_obj.animation:
+        if not self.animation:
             self.render_maze()
         self.put_entry_exit()
         self.maze_obj.save_file()
@@ -87,6 +87,12 @@ class Render:
         print("Encerrrando janela....")
         self.mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         self.mlx_obj.mlx_loop_exit(self.mlx_ptr)
+
+    def end_event(self, mlx_obj):
+        print("Encerrrando janela....")
+        mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
+        mlx_obj.mlx_loop_exit(self.mlx_ptr)
+
 
     def paint_block(
         self,
@@ -311,6 +317,7 @@ class Render:
 
     def gere_key(self, key: int, params) -> None:
         maze, mlx, mlx_ptr, win_ptr, width, height = params
+        print(key)
         if key == 49:
             maze.new_seed()
             maze.maze = []

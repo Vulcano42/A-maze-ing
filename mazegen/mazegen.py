@@ -275,7 +275,11 @@ class MazeGenerator:
         self.maze: list[list[Node]] = []
         self.path: list[Any] = []
         self.path_str = ""
-        self.animation = False
+
+    def build(self) -> None:
+        """Generate the maze ignoring yield in funcitons."""
+        for _ in self.generate_maze():
+            pass
 
     def generate_maze(self) -> Generator[tuple, None, None]:
         """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
@@ -297,7 +301,6 @@ class MazeGenerator:
                     valor = next(gen)
                     yield valor
                 except StopIteration:
-                    # yield -1
                     break
         else:
             # gen_perf = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
