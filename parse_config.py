@@ -179,8 +179,10 @@ def validate_config() -> dict[str, Any]:
             for line in f:
                 if line == "\n" or line.strip().startswith("#"):
                     continue
+                if line.strip().index("=") + 1 == len(line.strip()):
+                    raise Exception
                 key, value = line.split("=", 1)
-                key = key.lower()
+                key = key.strip().lower()
                 value = value.strip()
                 dict_raw[key] = value
     except Exception:
