@@ -4,9 +4,9 @@ from mazegen import MazeGenerator
 
 
 class Render:
-    def __init__(self, maze_obj: Any, animation: bool = False) -> None:
+    def __init__(self, maze_obj: MazeGenerator, animation: bool = False) -> None:
         self.colors = self.select_color()
-        self.maze_obj: MazeGenerator = maze_obj
+        self.maze_obj = maze_obj
         self.show_path: bool = False
         self.mlx_obj = mlx.Mlx()
         self.mlx_ptr = None
@@ -42,7 +42,9 @@ class Render:
         )
         self.params = (self.maze_obj, self.mlx_obj, self.mlx_ptr,
                        self.win_ptr, width, height)
-        self.mlx_obj.mlx_hook(self.win_ptr, 33, 0, self.end_event, self.mlx_obj)
+        self.mlx_obj.mlx_hook(
+            self.win_ptr, 33, 0, self.end_event, self.mlx_obj
+        )
         self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, self.params)
         self.mlx_obj.mlx_string_put(
             self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
@@ -92,7 +94,6 @@ class Render:
         print("Encerrrando janela....")
         mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         mlx_obj.mlx_loop_exit(self.mlx_ptr)
-
 
     def paint_block(
         self,

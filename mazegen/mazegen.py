@@ -10,7 +10,7 @@ saving the formatted result to a file, and starting visual rendering.
 """
 
 import random
-from typing import Any, Generator
+from typing import Generator
 
 
 class Node:
@@ -26,7 +26,13 @@ class Node:
     """
 
     def __init__(self, x: int, y: int) -> None:
-        """Initializes a node (cell) with walls closed in all directions."""
+        """
+        Initializes a node (cell) with walls closed in all directions.
+
+        Args:
+            x (int): The x-coordinate (column) of the node.
+            y (int): The y-coordinate (row) of the node.
+        """
         self.parent = self
         self.rank = 0
         self.wall = 15
@@ -39,20 +45,21 @@ class Bfs:
 
     @staticmethod
     def short_path(
-        maze: list[list[Any]],
+        maze: list[list[Node]],
         entry: tuple[int, int],
         exit_maze: tuple[int, int]
-    ) -> Any:
+    ) -> list[Node]:
         """
         Calculates the shortest path between the maze entry and exit.
 
         Args:
-            maze (list[list[Any]]): 2D matrix containing the maze nodes.
+            maze (list[list[Node]]): 2D matrix containing the maze nodes.
             entry (tuple[int, int]): Entry coordinates (x, y).
             exit_maze (tuple[int, int]): Exit coordinates (x, y).
 
         Returns:
-            list: A list of ordered nodes making up the correct path.
+            list: A list of ordered nodes making up the shortest path from entry to exit.
+                  Returns an empty list if no path is found.
         """
         start_node: Node = maze[entry[1]][entry[0]]
         visited: set[Node] = {start_node}
@@ -101,7 +108,13 @@ class Kruskal:
 
     @staticmethod
     def link(x: Node, y: Node) -> None:
-        """Unites two disjoint sets based on their ranks."""
+        """
+        Unites two disjoint sets based on their ranks.
+
+        Args:
+            x (Node): The root node of the first set.
+            y (Node): The root node of the second set.
+        """
         if x.rank > y.rank:
             y.parent = x
         else:
@@ -111,14 +124,28 @@ class Kruskal:
 
     @staticmethod
     def find_set(x: Node) -> Node:
-        """Finds the root of the set to which the node belongs (with path compression)."""
+        """
+        Finds the root of the set to which the node belongs, applying path compression.
+
+        Args:
+            x (Node): The node to find the root for.
+
+        Returns:
+            Node: The root node of the set containing x.
+        """
         if x.parent != x:
             x.parent = Kruskal.find_set(x.parent)
         return x.parent
 
     @staticmethod
     def union(x: Node, y: Node) -> None:
-        """Performs the union of the sets of two nodes."""
+        """
+        Performs the union of the sets containing the two specified nodes.
+
+        Args:
+            x (Node): The first node.
+            y (Node): The second node.
+        """
         Kruskal.link(Kruskal.find_set(x), Kruskal.find_set(y))
 
     @staticmethod
@@ -126,9 +153,18 @@ class Kruskal:
         maze: list[list[Node]],
         height: int, width: int
     ) -> list[tuple[Node, Node]]:
-        """Generates and shuffles all possible edges between neighboring cells."""
+        """
+        Generates and shuffles all possible edges between neighboring cells.
+
+        Args:
+            maze (list[list[Node]]): 2D matrix containing the maze nodes.
+            height (int): Maze height in number of cells.
+            width (int): Maze width in number of cells.
+
+        Returns:
+            list[tuple[Node, Node]]: A randomized list of adjacent node pairs.
+        """
         adjacency_list: list = []
-        random.shuffle(adjacency_list)
         for i in range(height):
             for j in range(width - 1):
                 adjacency_list.append((maze[i][j], maze[i][j + 1]))
@@ -143,7 +179,17 @@ class Kruskal:
         maze: list[list[Node]],
         height: int, width: int
     ) -> Generator[tuple[Node, Node], None, None]:
-        """Generates a perfect maze (no loops and no isolated areas)."""
+        """
+        Generates a perfect maze (no loops and no isolated areas) using Kruskal's algorithm.
+
+        Args:
+            maze (list[list[Node]]): 2D matrix containing the maze nodes.
+            height (int): Maze height in number of cells.
+            width (int): Maze width in number of cells.
+
+        Yields:
+            tuple[Node, Node]: The current pair of nodes being connected, useful for step-by-step rendering.
+        """
         n = 0
         adjacency_list = Kruskal.create_edge(maze, height, width)
         for t in adjacency_list:
@@ -161,18 +207,28 @@ class Kruskal:
                 if t[0].cords[1] < t[1].cords[1]:
                     t[0].wall = t[0].wall - 2**1
                     t[1].wall = t[1].wall - 2**3
-                # mst.append((t[0], t[1]))
                 Kruskal.union(t[0], t[1])
                 n += 1
                 yield t
-        # return mst
 
     @staticmethod
     def kruskal_imperfect(
         maze: list[list[Node]],
         height: int, width: int
     ) -> Generator[tuple[Node, Node], None, None]:
-        """Generates an imperfect maze (with loops for game/Pac-Man mode)."""
+        """
+        Generates an imperfect maze (with loops for game/Pac-Man mode).
+
+        First creates a perfect maze, then randomly breaks additional walls to create loops.
+
+        Args:
+            maze (list[list[Node]]): 2D matrix containing the maze nodes.
+            height (int): Maze height in number of cells.
+            width (int): Maze width in number of cells.
+
+        Yields:
+            tuple[Node, Node]: The current pair of nodes having a wall removed.
+        """
         yield from Kruskal.kruskal_perfect(maze, height, width)
         max_y = len(maze)
         max_x = len(maze[0])
@@ -224,8 +280,18 @@ class Kruskal:
                             yield (maze[y][x], neighbor)
 
     @staticmethod
-    def verify(maze: list[list[Any]], max_x: int, max_y: int) -> bool:
-        """Verifies if there are still dead ends that need to be opened."""
+    def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
+        """
+        Verifies if there are still dead ends that need to be opened in an imperfect maze.
+
+        Args:
+            maze (list[list[Node]]): 2D matrix containing the maze nodes.
+            max_x (int): Maximum width index of the maze.
+            max_y (int): Maximum height index of the maze.
+
+        Returns:
+            bool: True if dead ends remain, False otherwise.
+        """
         for y in range(max_y):
             for x in range(max_x):
                 ft_count = 0
@@ -251,19 +317,19 @@ class MazeGenerator:
         width (int): Maze width in number of cells.
         entry (tuple[int, int]): Entry coordinates (x, y).
         exit_maze (tuple[int, int]): Exit coordinates (x, y).
-        seed (int): Seed for pseudo-random number generator initialization.
-        perfect (bool): Defines whether the maze should be perfect (True) or playable (False).
+        seed (int | str): Seed for pseudo-random number generator initialization.
+        perfect (bool): Defines whether the maze should be perfect (True) or playable/imperfect (False).
         output_file (str): Path to the generated output file.
 
     Attributes:
         maze (list[list[Node]]): Grid containing the generated nodes.
-        path (list[Any]): List of nodes forming the solution path.
+        path (list[Node]): List of nodes forming the solution path.
         path_str (str): Textual representation of the path using 'N', 'E', 'S', 'W'.
     """
 
     def __init__(
         self, height: int, width: int, entry: tuple[int, int],
-        exit_maze: tuple[int, int], seed: int, perfect: bool, output_file: str
+        exit_maze: tuple[int, int], seed: int | str, perfect: bool, output_file: str
     ) -> None:
         self.height = height
         self.width = width
@@ -273,16 +339,27 @@ class MazeGenerator:
         self.perfect = perfect
         self.output_file = output_file
         self.maze: list[list[Node]] = []
-        self.path: list[Any] = []
+        self.path: list[Node] = []
         self.path_str = ""
 
     def build(self) -> None:
-        """Generate the maze ignoring yield in funcitons."""
+        """
+        Generates the maze completely in a single run.
+        
+        Consumes the generator from `generate_maze` ignoring intermediate yields,
+        useful for generating the full maze without step-by-step visual rendering.
+        """
         for _ in self.generate_maze():
             pass
 
     def generate_maze(self) -> Generator[tuple, None, None]:
-        """Executes grid construction, logo application, Kruskal's algorithm, and BFS."""
+        """
+        Executes grid construction, logo application, Kruskal's algorithm, and BFS.
+
+        Yields:
+            tuple: Intermediate states of the maze generation for rendering. Yields an 
+                   empty tuple after grid setup, and node pairs during Kruskal generation.
+        """
         print(self.seed)
         if not self.maze:
             if self.seed != "random":
@@ -331,7 +408,12 @@ class MazeGenerator:
                 self.path_str += "E"
 
     def logo(self) -> None:
-        """Positions the '42' logo in the center of the maze if dimensions allow."""
+        """
+        Positions the '42' logo in the center of the maze if dimensions allow.
+
+        Raises:
+            ValueError: If the maze entry or exit overlaps with the fixed '42' logo area.
+        """
         mid_h = int(self.height / 2)
         mid_w = int(self.width / 2)
 
@@ -360,12 +442,19 @@ class MazeGenerator:
         if self.maze[self.exit_maze[1]][self.exit_maze[0]].fix:
             raise ValueError("Maze exit is the same as 42 logo")
 
-    def new_seed(self):
+    def new_seed(self) -> None:
+        """
+        Generates and applies a new random seed for the maze generation.
+        """
         self.seed = random.randint(0, 100000)
         random.seed(self.seed)
 
     def save_file(self) -> None:
-        """Writes the hexadecimal bit matrix, coordinates, and path to the output file."""
+        """
+        Writes the hexadecimal bit matrix, coordinates, and path to the output file.
+        
+        Prints a success message upon completion, or an error message if an OSError occurs.
+        """
         try:
             with open(self.output_file, "w") as file:
                 for row in range(self.height):
