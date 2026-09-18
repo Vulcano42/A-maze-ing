@@ -345,7 +345,7 @@ class MazeGenerator:
     def build(self) -> None:
         """
         Generates the maze completely in a single run.
-        
+
         Consumes the generator from `generate_maze` ignoring intermediate yields,
         useful for generating the full maze without step-by-step visual rendering.
         """
@@ -360,7 +360,7 @@ class MazeGenerator:
             tuple: Intermediate states of the maze generation for rendering. Yields an 
                    empty tuple after grid setup, and node pairs during Kruskal generation.
         """
-        print(self.seed)
+        print("seed:", self.seed)
         if not self.maze:
             if self.seed != "random":
                 random.seed(self.seed)
