@@ -14,8 +14,8 @@ def main() -> None:
     maze = MazeGenerator(config["height"], config["width"], config["entry"],
                          config["exit"], config["seed"],
                          config["perfect"], config["output_file"])
-    render = Render(maze, False)
-    # print(config.animation)
+    render = Render(maze, config["animation"])
+    print(config["animation"])
     render.start()
     render.init_animation()
 

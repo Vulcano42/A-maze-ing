@@ -151,6 +151,21 @@ def compare_entry_exit(dict_graph: dict[str, Any]) -> None:
         print_error()
 
 
+def v_animation(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    raw_animation: str = dict_raw.get("animation", "").strip()
+
+    if not raw_animation:
+        dict_graph["animation"] = False
+        return
+
+    if raw_animation.lower() == "true":
+        dict_graph["animation"] = True
+    elif raw_animation.lower() == "false":
+        dict_graph["animation"] = False
+    else:
+        print("'animation' value should be 'True' or 'False'")
+        print_error()
+
 def validate_config() -> dict[str, Any]:
 
     if len(sys.argv) != 2:
@@ -185,18 +200,20 @@ def validate_config() -> dict[str, Any]:
     v_entry(dict_raw, dict_graph)
     v_exit(dict_raw, dict_graph)
     compare_entry_exit(dict_graph)
+    v_animation(dict_raw, dict_graph)
 
     valid_keys: set[str] = {
-        "width", "height", "entry", "exit", "output_file", "perfect", "seed"
+        "width", "height", "entry", "exit", "output_file", "perfect",
+        "seed", "animation"
         }
+
+    if len(dict_graph.keys()) < 6 and len(dict_graph.keys()) > 8:
+        print("Be sure to have all values like the example below")
+        print_error()
 
     for key in dict_graph.keys():
         if key not in valid_keys:
             print("Be sure to have all values like the example below")
             print_error()
-
-    if len(dict_graph.keys()) != 7:
-        print("Be sure to have all values like the example below")
-        print_error()
 
     return dict_graph
