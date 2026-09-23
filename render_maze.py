@@ -4,7 +4,9 @@ from mazegen import MazeGenerator
 
 
 class Render:
-    def __init__(self, maze_obj: MazeGenerator, animation: bool = False) -> None:
+    def __init__(
+            self, maze_obj: MazeGenerator, animation: bool = False
+            ) -> None:
         self.colors = self.select_color()
         self.maze_obj = maze_obj
         self.show_path: bool = False
@@ -318,7 +320,6 @@ class Render:
 
     def gere_key(self, key: int, params) -> None:
         maze, mlx, mlx_ptr, win_ptr, width, height = params
-        print(key)
         if key == 49:
             maze.new_seed()
             maze.maze = []

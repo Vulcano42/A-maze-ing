@@ -18,8 +18,10 @@ class Node:
     Represents an individual cell within the maze grid.
 
     Attributes:
-        parent (Node): Reference to the cell itself (used in the Union-Find algorithm).
-        rank (int): Hierarchical level of the tree (used for Union-Find optimization).
+        parent (Node): Reference to the cell itself (used in the
+         Union-Find algorithm).
+        rank (int): Hierarchical level of the tree (used for Union-Find
+         optimization).
         wall (int): Bitmask encoding the state of the 4 walls (N, E, S, W).
         cords (tuple[int, int]): Coordinates (x, y) of the cell in the matrix.
         fix (bool): Indicates whether the cell is part of the fixed '42' logo.
@@ -58,8 +60,8 @@ class Bfs:
             exit_maze (tuple[int, int]): Exit coordinates (x, y).
 
         Returns:
-            list: A list of ordered nodes making up the shortest path from entry to exit.
-                  Returns an empty list if no path is found.
+            list: A list of ordered nodes making up the shortest path from
+             entry to exit. Returns an empty list if no path is found.
         """
         start_node: Node = maze[entry[1]][entry[0]]
         visited: set[Node] = {start_node}
@@ -125,7 +127,8 @@ class Kruskal:
     @staticmethod
     def find_set(x: Node) -> Node:
         """
-        Finds the root of the set to which the node belongs, applying path compression.
+        Finds the root of the set to which the node belongs, applying path
+         compression.
 
         Args:
             x (Node): The node to find the root for.
@@ -180,7 +183,8 @@ class Kruskal:
         height: int, width: int
     ) -> Generator[tuple[Node, Node], None, None]:
         """
-        Generates a perfect maze (no loops and no isolated areas) using Kruskal's algorithm.
+        Generates a perfect maze (no loops and no isolated areas) using
+         Kruskal's algorithm.
 
         Args:
             maze (list[list[Node]]): 2D matrix containing the maze nodes.
@@ -188,7 +192,8 @@ class Kruskal:
             width (int): Maze width in number of cells.
 
         Yields:
-            tuple[Node, Node]: The current pair of nodes being connected, useful for step-by-step rendering.
+            tuple[Node, Node]: The current pair of nodes being connected,
+             useful for step-by-step rendering.
         """
         n = 0
         adjacency_list = Kruskal.create_edge(maze, height, width)
@@ -219,7 +224,8 @@ class Kruskal:
         """
         Generates an imperfect maze (with loops for game/Pac-Man mode).
 
-        First creates a perfect maze, then randomly breaks additional walls to create loops.
+        First creates a perfect maze, then randomly breaks additional walls to
+            create loops.
 
         Args:
             maze (list[list[Node]]): 2D matrix containing the maze nodes.
@@ -282,7 +288,8 @@ class Kruskal:
     @staticmethod
     def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
         """
-        Verifies if there are still dead ends that need to be opened in an imperfect maze.
+        Verifies if there are still dead ends that need to be
+            opened in an imperfect maze.
 
         Args:
             maze (list[list[Node]]): 2D matrix containing the maze nodes.
@@ -317,19 +324,21 @@ class MazeGenerator:
         width (int): Maze width in number of cells.
         entry (tuple[int, int]): Entry coordinates (x, y).
         exit_maze (tuple[int, int]): Exit coordinates (x, y).
-        seed (int | str): Seed for pseudo-random number generator initialization.
-        perfect (bool): Defines whether the maze should be perfect (True) or playable/imperfect (False).
+        seed (int | str): Pseudo-random number generator initialization.
+        perfect (bool): Defines whether the maze should be perfect (True)
+            or playable/imperfect (False).
         output_file (str): Path to the generated output file.
 
     Attributes:
         maze (list[list[Node]]): Grid containing the generated nodes.
         path (list[Node]): List of nodes forming the solution path.
-        path_str (str): Textual representation of the path using 'N', 'E', 'S', 'W'.
+        path_str (str): Textual representation of the path 'N', 'E', 'S', 'W'.
     """
 
     def __init__(
         self, height: int, width: int, entry: tuple[int, int],
-        exit_maze: tuple[int, int], seed: int | str, perfect: bool, output_file: str
+        exit_maze: tuple[int, int], seed: int | str, perfect: bool,
+        output_file: str
     ) -> None:
         self.height = height
         self.width = width
@@ -346,19 +355,22 @@ class MazeGenerator:
         """
         Generates the maze completely in a single run.
 
-        Consumes the generator from `generate_maze` ignoring intermediate yields,
-        useful for generating the full maze without step-by-step visual rendering.
+        Consumes the generator from `generate_maze` ignoring intermediate
+        yields, useful for generating the full maze without step-by-step
+        visual rendering.
         """
         for _ in self.generate_maze():
             pass
 
     def generate_maze(self) -> Generator[tuple, None, None]:
         """
-        Executes grid construction, logo application, Kruskal's algorithm, and BFS.
+        Executes grid construction, logo application,
+         Kruskal's algorithm and BFS.
 
         Yields:
-            tuple: Intermediate states of the maze generation for rendering. Yields an 
-                   empty tuple after grid setup, and node pairs during Kruskal generation.
+            tuple: Intermediate states of the maze generation for rendering.
+                   Yields an empty tuple after grid setup, and node pairs
+                   during Kruskal generation.
         """
         print("seed:", self.seed)
         if not self.maze:
@@ -380,16 +392,8 @@ class MazeGenerator:
                 except StopIteration:
                     break
         else:
-            # gen_perf = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
-            gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
-            # while True:
-            #     try:
-            #         valor = next(gen_perf)
-            #         print("gen =",valor)
-            #         yield valor
-            #     except StopIteration:
-            #         # yield -1
-            #         break
+            gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height,
+                                                   self.width)
             while True:
                 try:
                     value = next(gen_imperf)
@@ -412,7 +416,8 @@ class MazeGenerator:
         Positions the '42' logo in the center of the maze if dimensions allow.
 
         Raises:
-            ValueError: If the maze entry or exit overlaps with the fixed '42' logo area.
+            ValueError: If the maze entry or exit overlaps with the fixed '42'
+             logo area.
         """
         mid_h = int(self.height / 2)
         mid_w = int(self.width / 2)
@@ -451,9 +456,11 @@ class MazeGenerator:
 
     def save_file(self) -> None:
         """
-        Writes the hexadecimal bit matrix, coordinates, and path to the output file.
-        
-        Prints a success message upon completion, or an error message if an OSError occurs.
+        Writes the hexadecimal bit matrix, coordinates, and path to the
+         output file.
+
+        Prints a success message upon completion, or an error message if an
+         OSError occurs.
         """
         try:
             with open(self.output_file, "w") as file:
