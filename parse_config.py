@@ -166,6 +166,7 @@ def v_animation(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         print("'animation' value should be 'True' or 'False'")
         print_error()
 
+
 def validate_config() -> dict[str, Any]:
 
     if len(sys.argv) != 2:
