@@ -337,8 +337,8 @@ class MazeGenerator:
 
     def __init__(
         self, height: int, width: int, entry: tuple[int, int],
-        exit_maze: tuple[int, int], seed: int | str, perfect: bool,
-        output_file: str
+        exit_maze: tuple[int, int], output_file: str,
+        seed: int | str = "random", perfect: bool = False
     ) -> None:
         self.height = height
         self.width = width
@@ -372,6 +372,7 @@ class MazeGenerator:
                    Yields an empty tuple after grid setup, and node pairs
                    during Kruskal generation.
         """
+        self.validate_config()
         print("seed:", self.seed)
         if not self.maze:
             if self.seed != "random":
@@ -476,3 +477,35 @@ class MazeGenerator:
 
         except OSError:
             print("Error while tring to save output file.")
+
+    def validate_config(self) -> None:
+        try:
+            isinstance(self.width, int)
+            isinstance(self.height, int)
+            isinstance(self.perfect, bool)
+            isinstance(self.output_file, str)
+            if not isinstance(self.seed, (int)) and self.seed != "random":
+                raise Exception("Invalid seed")
+            if not self.output_file.endswith(".txt"):
+                raise Exception("output_file incorret format")
+            isinstance(self.entry[0], int)
+            isinstance(self.entry[1], int)
+            isinstance(self.exit_maze[0], int)
+            isinstance(self.exit_maze[1], int)
+            if len(self.entry) != 2 or len(self.exit_maze) != 2:
+                raise Exception("entry or exit invalid")
+            if not (
+                int(self.entry[0]) <= self.height
+                and int(self.entry[1]) <= self.width
+                and int(self.exit_maze[0]) <= self.height
+                and int(self.exit_maze[1]) <= self.width
+                and int(self.entry[0]) >= 0
+                and int(self.entry[1]) >= 0
+                and int(self.exit_maze[0])
+                and int(self.exit_maze[1]) >= 0
+            ):
+                raise Exception("Invalid coordinates")
+                exit(1)
+        except Exception as e:
+            print(e)
+            exit(1)
