@@ -105,6 +105,93 @@ class Bfs:
         return []
 
 
+class Prim:
+    @staticmethod
+    def parent(index: int):
+        return int(index / 2)
+
+    @staticmethod
+    def left(index: int):
+        return int(2*index + 1)
+
+    @staticmethod
+    def right(index: int):
+        return int(2*index + 2)
+
+    @staticmethod
+    def min_heapify(heap: list, index: int):
+        left = Prim().left(index)
+        right = Prim().right(index)
+        min = index
+        if left <= len(heap) - 1 and heap[left] < heap[index]: # tem que mudar heap[l].key ou algo parecido
+            min = left
+        if right <= len(heap) - 1 and heap[right] < heap[min]:
+            min = right
+        if min != index:
+            index, min = min, index
+            Prim().min_heapify(heap, min)
+
+    @staticmethod
+    def extract_min_heap(heap: list):
+        if not heap:
+            return
+        heap[0], heap[len(heap) - 1] = heap[len(heap) - 1], heap[0]
+        min = heap.pop()
+        Prim().min_heapify(heap, 0)
+        return min
+
+    @staticmethod
+    def decrease_key(heap, node, key):
+        if key > node.key:
+            return
+        node.key = key
+        i = 0
+        while heap[i] != node:
+            i += 1
+        Prim().min_heapify(heap, 0) # não é maneira mais otimizada, mas é mais simples de se utilizar
+
+    @staticmethod
+    def insert_heap(heap, node):
+        heap.append(node)
+        i = int(len(heap) / 2)
+        while i > 0:
+            Prim().min_heapify(heap, i)
+            i -= 1
+
+    @staticmethod
+    def create_edge(
+        maze: list[list[Node]],
+        height: int, width: int
+    ) -> list[tuple[Node, Node, int]]:
+        adjacency_list: list = []
+        for i in range(height):
+            for j in range(width - 1):
+                adjacency_list.append((maze[i][j], maze[i][j + 1], random.randint(1, 1000)))
+        for i in range(width):
+            for j in range(height - 1):
+                adjacency_list.append((maze[j][i], maze[j + 1][i], random.randint(1, 1000)))
+        # random.shuffle(adjacency_list)
+        return adjacency_list
+
+    @staticmethod
+    def prim(maze, height, width):
+        adjacency_list = Prim().create_edge(maze, height, width)
+        heap = []
+        for line in maze:
+            for node in line:
+                node.key = 1001
+                node.parent = None
+        init_node = random.choice(random.choice(maze))
+        init_node.key = 0
+        for line in maze:
+            for node in line:
+                Prim().insert_heap(heap, node)
+        while heap:
+            min = Prim().extract_min_heap(heap)
+            # aqui preciso escolher todos os vizinho de min 
+
+
+
 class Kruskal:
     """Implements Kruskal's algorithm for minimum spanning tree generation."""
 
