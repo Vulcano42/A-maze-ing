@@ -10,7 +10,7 @@ saving the formatted result to a file, and starting visual rendering.
 """
 
 import random
-from typing import Generator
+from typing import Callable, Generator
 
 
 class Node:
@@ -107,55 +107,57 @@ class Bfs:
 
 class Prim:
     @staticmethod
-    def parent(index: int):
-        return int(index / 2)
+    def parent(index: int) -> int:
+        return int((index - 1) / 2) # como temos o indice começa com 0 então é necessário este - 1 para corrigir problemas com indices pares pois senão este parent(2) dá errado == 1????
 
     @staticmethod
-    def left(index: int):
+    def left(index: int) -> int:
         return int(2*index + 1)
 
     @staticmethod
-    def right(index: int):
+    def right(index: int) -> int:
         return int(2*index + 2)
 
     @staticmethod
-    def min_heapify(heap: list, index: int):
-        left = Prim().left(index)
-        right = Prim().right(index)
+    def min_heapify(heap: list, index: int) -> None:
+        left = Prim.left(index)
+        right = Prim.right(index)
         min = index
-        if left <= len(heap) - 1 and heap[left] < heap[index]: # tem que mudar heap[l].key ou algo parecido
+        if left <= len(heap) - 1 and heap[left].rank < heap[index].rank: # tem que mudar heap[l].key ou algo parecido
             min = left
-        if right <= len(heap) - 1 and heap[right] < heap[min]:
+        if right <= len(heap) - 1 and heap[right].rank < heap[min].rank:
             min = right
         if min != index:
-            index, min = min, index
-            Prim().min_heapify(heap, min)
+            heap[index], heap[min] = heap[min], heap[index]
+            Prim.min_heapify(heap, min)
 
     @staticmethod
-    def extract_min_heap(heap: list):
-        if not heap:
-            return
+    def extract_min_heap(heap: list[Node]) -> Node:
+        # if not heap:
+        #     return
         heap[0], heap[len(heap) - 1] = heap[len(heap) - 1], heap[0]
         min = heap.pop()
-        Prim().min_heapify(heap, 0)
+        Prim.min_heapify(heap, 0)
         return min
 
     @staticmethod
-    def decrease_key(heap, node, key):
-        if key > node.key:
+    def decrease_key(heap, node, key) -> None:
+        if key > node.rank:
             return
-        node.key = key
+        node.rank = key
         i = 0
         while heap[i] != node:
             i += 1
-        Prim().min_heapify(heap, 0) # não é maneira mais otimizada, mas é mais simples de se utilizar
+        while i > 0 and heap[Prim.parent(i)].rank > heap[i].rank:
+            heap[Prim.parent(i)], heap[i] = heap[i], heap[Prim.parent(i)]
+            i = Prim.parent(i)
 
     @staticmethod
-    def insert_heap(heap, node):
+    def insert_heap(heap, node) -> None:
         heap.append(node)
-        i = int(len(heap) / 2)
-        while i > 0:
-            Prim().min_heapify(heap, i)
+        i = int((len(heap) - 1) / 2)
+        while i >= 0:
+            Prim.min_heapify(heap, i)
             i -= 1
 
     @staticmethod
@@ -166,30 +168,137 @@ class Prim:
         adjacency_list: list = []
         for i in range(height):
             for j in range(width - 1):
-                adjacency_list.append((maze[i][j], maze[i][j + 1], random.randint(1, 1000)))
+                if not maze[i][j].fix and not maze[i][j + 1].fix:
+                    adjacency_list.append((maze[i][j], maze[i][j + 1], random.randint(1, 10000)))
         for i in range(width):
             for j in range(height - 1):
-                adjacency_list.append((maze[j][i], maze[j + 1][i], random.randint(1, 1000)))
-        # random.shuffle(adjacency_list)
+                if not maze[j][i].fix and not maze[j + 1][i].fix:
+                    adjacency_list.append((maze[j][i], maze[j + 1][i], random.randint(1, 10000)))
         return adjacency_list
 
     @staticmethod
-    def prim(maze, height, width):
-        adjacency_list = Prim().create_edge(maze, height, width)
-        heap = []
-        for line in maze:
-            for node in line:
-                node.key = 1001
-                node.parent = None
-        init_node = random.choice(random.choice(maze))
-        init_node.key = 0
-        for line in maze:
-            for node in line:
-                Prim().insert_heap(heap, node)
-        while heap:
-            min = Prim().extract_min_heap(heap)
-            # aqui preciso escolher todos os vizinho de min 
+    def prim(maze, height, width) -> Generator[tuple[Node, Node], None, None]:
+        adjacency_list: list[tuple[Node, Node, int]] = Prim.create_edge(maze, height, width)
+        heap: list[Node] = []
+        graph: dict[Node, list[tuple[Node, int]]] = {node: [] for line in maze for node in line}
 
+        for u, v, weight in adjacency_list:
+            graph[u].append((v, weight))
+            graph[v].append((u, weight))
+
+        for line in maze:
+            for node in line:
+                node.rank = 10001
+                node.parent = None
+
+        init_node = random.choice(adjacency_list)[0]
+        init_node.rank = 0
+        for line in maze:
+            for node in line:
+                Prim.insert_heap(heap, node)
+
+        while heap:
+            min = Prim.extract_min_heap(heap)
+            if min.parent is not None:
+                if min.cords[0] > min.parent.cords[0]:
+                    min.wall -= 2**0
+                    min.parent.wall -= 2**2
+                if min.cords[0] < min.parent.cords[0]:
+                    min.wall -= 2**2
+                    min.parent.wall -= 2**0
+                if min.cords[1] > min.parent.cords[1]:
+                    min.wall -= 2**3
+                    min.parent.wall -= 2**1
+                if min.cords[1] < min.parent.cords[1]:
+                    min.wall -= 2**1
+                    min.parent.wall -= 2**3
+                yield (min, min.parent)
+
+            for neighbor, weight in graph[min]:
+                if neighbor in heap and weight < neighbor.rank:
+                    neighbor.parent = min
+                    Prim.decrease_key(heap, neighbor, weight)
+
+    @staticmethod
+    def prim_imperfect(maze, height, widht):
+        yield from Prim.prim(maze, height, widht)
+        max_y = len(maze)
+        max_x = len(maze[0])
+        while Kruskal.verify(maze, max_x, max_y):
+            for y in range(max_y):
+                for x in range(max_x):
+                    options = []
+                    if maze[y][x].wall.bit_count() == 3 and not maze[y][x].fix:
+                        if (
+                            maze[y][x].wall & 1 == 1
+                            and y > 0
+                            and y - 1 > 0
+                            and not maze[y - 1][x].fix
+                        ):
+                            options.append(maze[y - 1][x])
+                        if (
+                            maze[y][x].wall & 2 == 2
+                            and x < max_x - 1
+                            and not maze[y][x + 1].fix
+                        ):
+                            options.append(maze[y][x + 1])
+                        if (
+                            maze[y][x].wall & 4 == 4
+                            and y < max_y - 1
+                            and not maze[y + 1][x].fix
+                        ):
+                            options.append((maze[y + 1][x]))
+                        if (
+                            maze[y][x].wall & 8 == 8
+                            and x > 0
+                            and x - 1 >= 0
+                            and not maze[y][x - 1].fix
+                        ):
+                            options.append(maze[y][x - 1])
+                        if options:
+                            neighbor = random.choice(options)
+                            if maze[y][x].cords[0] > neighbor.cords[0]:
+                                maze[y][x].wall = maze[y][x].wall - 2**0
+                                neighbor.wall = neighbor.wall - 2**2
+                            if maze[y][x].cords[0] < neighbor.cords[0]:
+                                maze[y][x].wall = maze[y][x].wall - 2**2
+                                neighbor.wall = neighbor.wall - 2**0
+                            if maze[y][x].cords[1] > neighbor.cords[1]:
+                                maze[y][x].wall = maze[y][x].wall - 2**3
+                                neighbor.wall = neighbor.wall - 2**1
+                            if maze[y][x].cords[1] < neighbor.cords[1]:
+                                maze[y][x].wall = maze[y][x].wall - 2**1
+                                neighbor.wall = neighbor.wall - 2**3
+                            yield (maze[y][x], neighbor)
+
+    # @staticmethod
+    # def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
+    #     """
+    #     Verifies if there are still dead ends that need to be
+    #         opened in an imperfect maze.
+    #
+    #     Args:
+    #         maze (list[list[Node]]): 2D matrix containing the maze nodes.
+    #         max_x (int): Maximum width index of the maze.
+    #         max_y (int): Maximum height index of the maze.
+    #
+    #     Returns:
+    #         bool: True if dead ends remain, False otherwise.
+    #     """
+    #     for y in range(max_y):
+    #         for x in range(max_x):
+    #             ft_count = 0
+    #             ft_count += 1 if x + 1 < max_x and maze[y][x + 1].fix else 0
+    #             ft_count += 1 if x - 1 >= 0 and maze[y][x - 1].fix else 0
+    #             ft_count += 1 if y + 1 < max_y and maze[y + 1][x].fix else 0
+    #             ft_count += 1 if y - 1 > 0 and maze[y - 1][x].fix else 0
+    #             if (
+    #                 maze[y][x].wall.bit_count() == 3 and not
+    #                 maze[y][x].fix and ft_count < 3
+    #             ):
+    #                 return True
+    #
+    #     return False
 
 
 class Kruskal:
@@ -437,6 +546,8 @@ class MazeGenerator:
         self.maze: list[list[Node]] = []
         self.path: list[Node] = []
         self.path_str = ""
+        self.algorithm_str = "prim"
+        self.algorithm = self.select_algorithm()
 
     def build(self) -> None:
         """
@@ -448,6 +559,19 @@ class MazeGenerator:
         """
         for _ in self.generate_maze():
             pass
+
+    def select_algorithm(self) -> Callable[..., Generator[tuple, None, None]] | None:
+        if self.algorithm_str.lower() == "prim" and self.perfect:
+            return Prim.prim
+        if self.algorithm_str.lower() == "prim" and not self.perfect:
+            return Prim.prim_imperfect
+        if self.algorithm_str.lower() == "kruskal" and self.perfect:
+            return Kruskal.kruskal_perfect
+        if self.algorithm_str.lower() == "kruskal" and not self.perfect:
+            return Kruskal.kruskal_imperfect
+        print("Select an algorithm valid")
+        return None
+
 
     def generate_maze(self) -> Generator[tuple, None, None]:
         """
@@ -471,23 +595,31 @@ class MazeGenerator:
             if self.width > 14 and self.height > 14:
                 self.logo()
             yield ()
-        if self.perfect:
-            gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
-            while True:
-                try:
-                    valor = next(gen)
-                    yield valor
-                except StopIteration:
-                    break
-        else:
-            gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height,
-                                                   self.width)
-            while True:
-                try:
-                    value = next(gen_imperf)
-                    yield value
-                except StopIteration:
-                    break
+        # if self.perfect:
+        #     gen = Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+        #     while True:
+        #         try:
+        #             valor = next(gen)
+        #             yield valor
+        #         except StopIteration:
+        #             break
+        # else:
+        #     gen_imperf = Kruskal.kruskal_imperfect(self.maze, self.height,
+        #                                            self.width)
+        #     while True:
+        #         try:
+        #             value = next(gen_imperf)
+        #             yield value
+        #         except StopIteration:
+        #             break
+        gen = self.algorithm(self.maze, self.height, self.width)
+        while True:
+            try:
+                valor = next(gen)
+                yield valor
+            except StopIteration:
+                break
+
         self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
         for i in range(len(self.path) - 1):
             if self.path[i].cords[0] > self.path[i + 1].cords[0]:

@@ -11,7 +11,7 @@ def main() -> None:
     starts rendering."""
     config: dict[str, Any] = validate_config()
     # print(config)
-    maze = MazeGenerator(config["heigth"], config["width"], config["entry"],
+    maze = MazeGenerator(config["height"], config["width"], config["entry"],
                          config["exit"], config["output_file"], config["seed"],
                          config["perfect"])
     render = Render(maze, config["animation"])
