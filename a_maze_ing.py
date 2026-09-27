@@ -13,7 +13,7 @@ def main() -> None:
     # print(config)
     maze = MazeGenerator(config["height"], config["width"], config["entry"],
                          config["exit"], config["output_file"], config["seed"],
-                         config["perfect"])
+                         config["perfect"], "kruskal")
     render = Render(maze, config["animation"])
     render.start()
     render.init_animation()
