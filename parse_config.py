@@ -167,6 +167,21 @@ def v_animation(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         print_error()
 
 
+def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    raw_algorithm: str = dict_raw.get("algorithm", "").strip()
+
+    if not raw_algorithm:
+        dict_graph["algorithm"] = "Kruskal"
+        return
+
+    if raw_algorithm.lower() in ["bfs", "kruskal", "prim"]:
+        dict_graph["algorithm"] = raw_algorithm
+    else:
+        print("The 'algorithm' must be one of the",
+              "following: BFS, Kruskal or Prim. ")
+        print_error()
+
+
 def validate_config() -> dict[str, Any]:
 
     if len(sys.argv) != 2:
@@ -202,13 +217,14 @@ def validate_config() -> dict[str, Any]:
     v_exit(dict_raw, dict_graph)
     compare_entry_exit(dict_graph)
     v_animation(dict_raw, dict_graph)
+    v_algorithm(dict_raw, dict_graph)
 
     valid_keys: set[str] = {
         "width", "height", "entry", "exit", "output_file", "perfect",
-        "seed", "animation"
+        "seed", "animation", "algorithm"
         }
 
-    if len(dict_graph.keys()) < 6 and len(dict_graph.keys()) > 8:
+    if len(dict_graph.keys()) < 6 and len(dict_graph.keys()) > 9:
         print("Be sure to have all values like the example below")
         print_error()
 
