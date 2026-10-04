@@ -74,13 +74,16 @@ O segundo valor se refere ao eixo y altura e sempre deverá ser no mínimo 0 e n
 
 `SEED`: este é o único valor opcional. Em regra o parâmetro será fornecido vazio como `SEED=`o que fará com que a geração do labirinto seja completamente aleatória a cada sessão. Se o usuário desejar, ele pode colocar um número inteiro positivo que servirá de base para repetir o mesmo labirinto. Por exemplo `SEED=42`sempre gerará o mesmo labirinto, desde que todas as informações acima também sejam idênticas.
 
+### Inicialização
+
 
 
 ## Fontes
 
 Utilizamos site de pesquisa Google, repositórios no Github, respostas de IA Gemini, Copilot, Claude e ChatGPT como principais fontes de informação.
 O uso da IA nos ajudou muito a estruturar o projeto para torna-lo bem otimizado. Também teve uso de IA na descrição deste README.
-O algoritmo Kruskal foi baseados no livro XXXX.
+O algoritmo Kruskal foi baseados no livro Introduction to algorithms 4ed.
+>>>>>>> ecallisa
 
 ## Contribuição pessoal
 

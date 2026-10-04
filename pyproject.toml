@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -12,11 +12,8 @@ authors = [
 description = "A professional and reusable maze generator."
 readme = "README.md"
 requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
+license = "MIT"
+license-files = ["LICENSE.md"]
 
 [tool.setuptools]
-py-modules = ["a_maze_ing", "parse_config", "render_maze"]
+packages = ["mazegen"]
