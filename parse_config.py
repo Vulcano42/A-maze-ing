@@ -171,7 +171,7 @@ def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
     raw_algorithm: str = dict_raw.get("algorithm", "").strip()
 
     if not raw_algorithm:
-        dict_graph["algorithm"] = "Kruskal"
+        dict_graph["algorithm"] = "kruskal"
         return
 
     if raw_algorithm.lower() in ["bfs", "kruskal", "prim"]:

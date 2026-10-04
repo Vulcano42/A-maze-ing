@@ -111,7 +111,7 @@ class BfsGenerator:
         width: int
     ) -> Generator[tuple[Node, Node]]:
         yield from BfsGenerator.bfs_perfect(
-                    maze, start_y, start_y,
+                    maze, start_y, start_x,
                     height, width
             )
         max_y = len(maze)

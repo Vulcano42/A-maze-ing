@@ -8,7 +8,7 @@ class Render:
             self, maze_obj: MazeGenerator, animation: bool = False
             ) -> None:
         self.colors = self.select_color()
-        self.maze_obj = maze_obj
+        self.maze_obj: MazeGenerator = maze_obj
         self.show_path: bool = False
         self.mlx_obj = mlx.Mlx()
         self.mlx_ptr = None

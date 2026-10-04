@@ -3,9 +3,10 @@ height=20
 entry=1,2
 exit=14,14
 output_file=maze.txt
-perfect=false
+perfect=true
 seed = 42
-animation = false
+animation = true
+algorithm = bfs
 
 # [recommended values]
 # width=20

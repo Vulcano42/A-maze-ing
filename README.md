@@ -11,14 +11,28 @@ Este código é aberto para ser utilizado por qualquer pessoa e servirá de base
 
 **Maze Generation Algorithm: Randomized Kruskal**
 
-Este projeto utiliza o algoritmo Randomized Kruskal (Kruskal Aleatorizado) aliado a uma estrutura de dados de Conjuntos Disjuntos (Union-Find) para gerar os labirintos. A lógica foi encapsulada de forma a permitir tanto a geração de labirintos perfeitos quanto tabuleiros abertos e sem finais mortos.
+Este projeto utiliza o algoritmo Kruskal, Breadth-first Search (tanto para encontrar o caminho, como também para gerar o labirinto) e Prim para gerar os labirintos. A lógica foi encapsulada de forma a permitir tanto a geração de labirintos perfeitos quanto tabuleiros abertos e sem finais mortos.
 
-**Como o Labirinto Perfeito é Gerado (`kruskal_perfect`):**
+**Como o Labirinto Perfeito é Gerado (`Kruskal`):**
 * Inicialmente, cada célula do labirinto é tratada como um conjunto isolado (`rank = 0` e `parent = self`).
 * Todas as arestas possíveis (paredes compartilhadas entre células vizinhas) são mapeadas e embaralhadas aleatoriamente.
 * O algoritmo itera sobre essa lista de arestas. Se as duas células separadas pela parede pertencerem a conjuntos diferentes (verificado via `find_set` com compressão de caminho), a parede é derrubada utilizando operações *bitwise* subtraindo o valor direcional (1, 2, 4 ou 8) do atributo `wall`.
 * As células são então unidas no mesmo conjunto (`union` por *rank*), garantindo que não haja ciclos e criando um caminho único entre quaisquer dois pontos.
 * O padrão fixo "42" fixado através de uma flag (`fix`), impedindo que o algoritmo destrua suas paredes estruturais.
+
+BFS (gerar labirinto):
+* Inicialmente, selecionamos a celula que esta no meio do labirinto, apoś isso adicionamos ela a um lista chamada `visited`
+* Então buscamos selecionamos todos os nós vizinhos e guardamos em `frontier`
+* Iteramos para a lista `frontier` e verificamos se cada item pertence ou não a `visited`, se sim simplesmente pulamos para a proxima iteração, se não adicionamos o item para a lista `visited` e quebramos a parede entre a celula atual e o vizinho atual
+* Então pegamos todos os vizinhos do vizinho atual e guardamos na `frontier` e repetimos isso até que a lista esteja vazia
+
+Prim:
+* Neste algoritmo utilizamos a estrutura de dados Heap e como este algoritmo funciona com base nos pesos das arestas, nós geramos pesos aleatorios para cada aresta entre as celulas do labirinto
+* Começamos gerando um dicionario chamado `graph` onde a chave vai ser uma celular do labirinto e o valor será um tupla que contem o vizinho e o peso dessa aresta
+* Predefinmos que o atributo rank de cada celula comece com 1001
+* Selecionamso uma celula aleatoria e ela começa com o rank 0
+* Inserimos cada celula dentro da heap que vai ser ordenada de acordo com a strutura dela (a heap é um heap-minima)
+* Logo, pegamos a celula que tem o menor rank, então
 
 **Adaptação para Tabuleiros de Pac-Man (`kruskal_imperfect`):**
 * Para gerar o modo de jogo (onde becos sem saída não são permitidos), o gerador roda o algoritmo perfeito primeiro.
