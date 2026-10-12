@@ -5,7 +5,7 @@ exit=14,14
 output_file=maze.txt
 perfect=true
 seed = 42
-animation = false
+animation = true
 algorithm = bfs
 
 # [recommended values]

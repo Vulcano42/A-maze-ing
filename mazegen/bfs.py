@@ -1,11 +1,15 @@
+"""Randomized frontier maze generation and BFS shortest-path solving."""
+
 import random
 from typing import Generator, Any
 from .maze_utils import break_walls_imperfect, Node
 
 
 class BfsGenerator:
-    """Generates perfect mazes utilizing
-    Randomized Breadth-First Search (Prim's variant).
+    """Generate mazes with a randomized frontier expansion (Prim's variant).
+
+    Despite the name, cells are taken from the frontier at random, not in
+    queue order.
     """
 
     @staticmethod
@@ -16,18 +20,21 @@ class BfsGenerator:
         height: int,
         width: int,
     ) -> Generator[tuple[Node, Node], None, None]:
-        """
-        Executes the maze generation step-by-step.
+        """Generate a perfect maze one wall removal at a time.
+
+        Starts from the center cell of the grid and repeatedly picks a
+        random edge from the frontier, connecting it if the target cell is
+        still unvisited.
 
         Args:
-            maze (List[List[Node]]): 2D matrix containing the maze nodes.
-            start_y (int): Starting y-coordinate.
-            start_x (int): Starting x-coordinate.
-            max_y (int): Maze height boundary.
-            width (int): Maze width boundary.
+            maze: 2D matrix containing the maze nodes.
+            start_y: Starting row. Currently unused; the center is used.
+            start_x: Starting column. Currently unused; the center is used.
+            height: Maze height in cells.
+            width: Maze width in cells.
 
         Yields:
-            Tuple[Node, Node]: The current pair of nodes having a wall removed.
+            The pair ``(current, neighbor)`` whose shared wall was removed.
         """
         start_node = maze[int(height / 2)][int(width / 2)]
         visited: set[Node] = {start_node}
@@ -62,9 +69,18 @@ class BfsGenerator:
         max_y: int,
         max_x: int,
     ) -> None:
-        """
-        Finds valid unvisited neighbors and adds them to the expansion
-        frontier, respecting fixed boundaries like logos.
+        """Add the unvisited neighbors of a node to the frontier.
+
+        Neighbors that belong to the fixed '42' logo are ignored.
+
+        Args:
+            node: Cell whose neighbors are examined.
+            maze: 2D matrix containing the maze nodes.
+            visited: Cells already part of the maze.
+            frontier: List of ``(from_node, to_node)`` edges, updated in
+                place.
+            max_y: Maze height in cells.
+            max_x: Maze width in cells.
         """
         y, x = node.cords
 
@@ -90,9 +106,13 @@ class BfsGenerator:
 
     @staticmethod
     def _break_wall(n1: Node, n2: Node) -> None:
-        """
-        Removes the shared wall between two adjacent nodes
-        using arithmetic operations.
+        """Remove the wall shared by two adjacent nodes.
+
+        Clears the matching bit in each node's wall bitmask.
+
+        Args:
+            n1: First node.
+            n2: Node adjacent to ``n1``.
         """
         y1, x1 = n1.cords
         y2, x2 = n2.cords
@@ -119,6 +139,21 @@ class BfsGenerator:
         height: int,
         width: int,
     ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
+        """Generate an imperfect maze (with loops).
+
+        Builds a perfect maze first, then removes extra walls from dead
+        ends to create loops.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            start_y: Starting row, forwarded to ``bfs_perfect``.
+            start_x: Starting column, forwarded to ``bfs_perfect``.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Yields:
+            The pair of nodes whose shared wall was just removed.
+        """
         yield from BfsGenerator.bfs_perfect(
             maze, start_y, start_x, height, width
         )
@@ -128,7 +163,7 @@ class BfsGenerator:
 
 
 class Bfs:
-    """Implements the Breadth-First Search algorithm."""
+    """Breadth-First Search solver for finding the shortest maze path."""
 
     @staticmethod
     def short_path(
@@ -136,17 +171,16 @@ class Bfs:
         entry: tuple[int, int],
         exit_maze: tuple[int, int],
     ) -> Any:
-        """
-        Calculates the shortest path between the maze entry and exit.
+        """Find the shortest path between the maze entry and exit.
 
         Args:
-            maze (list[list[Node]]): 2D matrix containing the maze nodes.
-            entry (tuple[int, int]): Entry coordinates (x, y).
-            exit_maze (tuple[int, int]): Exit coordinates (x, y).
+            maze: 2D matrix containing the maze nodes.
+            entry: Entry coordinates as (x, y), i.e. (column, row).
+            exit_maze: Exit coordinates as (x, y), i.e. (column, row).
 
         Returns:
-            list: A list of ordered nodes making up the shortest path from
-             entry to exit. Returns an empty list if no path is found.
+            The ordered list of nodes from entry to exit, or an empty list
+            if no path exists.
         """
         start_node: Node = maze[entry[1]][entry[0]]
         visited: set[Node] = {start_node}

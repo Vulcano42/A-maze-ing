@@ -1,28 +1,29 @@
+"""Shared helpers for the maze generators: the Node class and wall breaking."""
+
 import random
 from typing import Generator
 
 
 class Node:
-    """
-    Represents an individual cell within the maze grid.
+    """A single cell of the maze grid.
 
     Attributes:
-        parent (Node): Reference to the cell itself (used in the
-         Union-Find algorithm).
-        rank (int): Hierarchical level of the tree (used for Union-Find
-         optimization).
-        wall (int): Bitmask encoding the state of the 4 walls (N, E, S, W).
-        cords (tuple[int, int]): Coordinates (x, y) of the cell in the matrix.
-        fix (bool): Indicates whether the cell is part of the fixed '42' logo.
+        parent: Parent in the Union-Find forest (Kruskal) or in the spanning
+            tree (Prim). A node starts as its own parent.
+        rank: Union-Find rank (Kruskal) or the priority key in the heap
+            (Prim).
+        wall: Bitmask of the closed walls: 1 = North, 2 = East, 4 = South,
+            8 = West. A set bit means the wall is present.
+        cords: Position in the grid as (row, column).
+        fix: True if the cell belongs to the fixed '42' logo.
     """
 
     def __init__(self, x: int, y: int) -> None:
-        """
-        Initializes a node (cell) with walls closed in all directions.
+        """Initialize a cell with all four walls closed.
 
         Args:
-            x (int): The x-coordinate (column) of the node.
-            y (int): The y-coordinate (row) of the node.
+            x: Row index of the cell (stored as ``cords[0]``).
+            y: Column index of the cell (stored as ``cords[1]``).
         """
         self.parent: Node | None = self
         self.rank = 0
@@ -32,17 +33,18 @@ class Node:
 
 
 def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
-    """
-    Verifies if there are still dead ends that need to be
-        opened in an imperfect maze.
+    """Check whether any dead end can still be opened.
+
+    A dead end is a non-logo cell with exactly three closed walls that is
+    not mostly surrounded by logo cells.
 
     Args:
-        maze (list[list[Node]]): 2D matrix containing the maze nodes.
-        max_x (int): Maximum width index of the maze.
-        max_y (int): Maximum height index of the maze.
+        maze: 2D matrix containing the maze nodes.
+        max_x: Maze width in cells.
+        max_y: Maze height in cells.
 
     Returns:
-        bool: True if dead ends remain, False otherwise.
+        True if at least one openable dead end remains, False otherwise.
     """
     for y in range(max_y):
         for x in range(max_x):
@@ -64,6 +66,20 @@ def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
 def break_walls_imperfect(
     maze: list[list[Node]], max_x: int, max_y: int
 ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
+    """Open walls of dead ends to turn a perfect maze into an imperfect one.
+
+    Repeatedly scans the grid and, for each dead end, removes one wall
+    shared with a randomly chosen non-logo neighbor, until ``verify``
+    reports no more dead ends.
+
+    Args:
+        maze: 2D matrix containing the maze nodes.
+        max_x: Maze width in cells.
+        max_y: Maze height in cells.
+
+    Yields:
+        The pair of adjacent nodes whose shared wall was just removed.
+    """
     while verify(maze, max_x, max_y):
         for y in range(max_y):
             for x in range(max_x):

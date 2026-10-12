@@ -1,3 +1,5 @@
+"""Maze generation with Kruskal's algorithm and a Union-Find structure."""
+
 import random
 from typing import Generator
 
@@ -5,16 +7,15 @@ from .maze_utils import break_walls_imperfect, Node
 
 
 class Kruskal:
-    """Implements Kruskal's algorithm for minimum spanning tree generation."""
+    """Kruskal's algorithm for generating mazes as spanning trees."""
 
     @staticmethod
     def link(x: Node, y: Node) -> None:
-        """
-        Unites two disjoint sets based on their ranks.
+        """Merge two disjoint sets using union by rank.
 
         Args:
-            x (Node): The root node of the first set.
-            y (Node): The root node of the second set.
+            x: Root node of the first set.
+            y: Root node of the second set.
         """
         if x.rank > y.rank:
             y.parent = x
@@ -25,15 +26,16 @@ class Kruskal:
 
     @staticmethod
     def find_set(x: Node | None) -> Node | None:
-        """
-        Finds the root of the set to which the node belongs, applying path
-         compression.
+        """Return the root of the set containing a node.
+
+        Applies path compression while walking up the tree.
 
         Args:
-            x (Node): The node to find the root for.
+            x: Node whose set root is wanted.
 
         Returns:
-            Node: The root node of the set containing x.
+            The root node of the set containing ``x``, or None if ``x`` is
+            None.
         """
         if x is None:
             return None
@@ -43,12 +45,13 @@ class Kruskal:
 
     @staticmethod
     def union(x: Node | None, y: Node | None) -> None:
-        """
-        Performs the union of the sets containing the two specified nodes.
+        """Merge the sets containing two nodes.
+
+        Does nothing if either root cannot be found.
 
         Args:
-            x (Node): The first node.
-            y (Node): The second node.
+            x: First node.
+            y: Second node.
         """
         root_x = Kruskal.find_set(x)
         root_y = Kruskal.find_set(y)
@@ -60,16 +63,16 @@ class Kruskal:
     def create_edge(
         maze: list[list[Node]], height: int, width: int
     ) -> list[tuple[Node, Node]]:
-        """
-        Generates and shuffles all possible edges between neighboring cells.
+        """Build and shuffle every edge between neighboring cells.
 
         Args:
-            maze (list[list[Node]]): 2D matrix containing the maze nodes.
-            height (int): Maze height in number of cells.
-            width (int): Maze width in number of cells.
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
 
         Returns:
-            list[tuple[Node, Node]]: A randomized list of adjacent node pairs.
+            A randomly ordered list of horizontally and vertically adjacent
+            node pairs.
         """
         adjacency_list: list[tuple[Node, Node]] = []
         for i in range(height):
@@ -85,18 +88,19 @@ class Kruskal:
     def kruskal_perfect(
         maze: list[list[Node]], height: int, width: int
     ) -> Generator[tuple[Node, Node], None, None]:
-        """
-        Generates a perfect maze (no loops and no isolated areas) using
-         Kruskal's algorithm.
+        """Generate a perfect maze (no loops, no isolated areas).
+
+        Iterates over the shuffled edges and removes the wall between two
+        cells whenever they are in different sets and neither belongs to the
+        '42' logo.
 
         Args:
-            maze (list[list[Node]]): 2D matrix containing the maze nodes.
-            height (int): Maze height in number of cells.
-            width (int): Maze width in number of cells.
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
 
         Yields:
-            tuple[Node, Node]: The current pair of nodes being connected,
-             useful for step-by-step rendering.
+            The pair of nodes just connected, for step-by-step rendering.
         """
         n = 0
         adjacency_list = Kruskal.create_edge(maze, height, width)
@@ -124,19 +128,18 @@ class Kruskal:
     def kruskal_imperfect(
         maze: list[list[Node]], height: int, width: int
     ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
-        """
-        Generates an imperfect maze (with loops for game/Pac-Man mode).
+        """Generate an imperfect maze (with loops, for game mode).
 
-        First creates a perfect maze, then randomly breaks additional walls to
-            create loops.
+        Builds a perfect maze first, then removes extra walls from dead
+        ends to create loops.
 
         Args:
-            maze (list[list[Node]]): 2D matrix containing the maze nodes.
-            height (int): Maze height in number of cells.
-            width (int): Maze width in number of cells.
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
 
         Yields:
-            tuple[Node, Node]: The current pair of nodes having a wall removed.
+            The pair of nodes whose shared wall was just removed.
         """
         yield from Kruskal.kruskal_perfect(maze, height, width)
         max_y = len(maze)

@@ -1,5 +1,5 @@
 from typing import Any
-import mlx  # type: ignore
+import mlx  # type: ignore[unused-ignore, import-untyped]
 from mazegen import MazeGenerator
 from mazegen.maze_utils import Node
 
@@ -106,12 +106,12 @@ class Render:
         self.mlx_obj.mlx_loop(self.mlx_ptr)
 
     def end(self) -> None:
-        print("Encerrrando janela....")
+        print("Closing window")
         self.mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         self.mlx_obj.mlx_loop_exit(self.mlx_ptr)
 
     def end_event(self, mlx_obj: Any) -> None:
-        print("Encerrrando janela....")
+        print("Closing window")
         mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         mlx_obj.mlx_loop_exit(self.mlx_ptr)
 
