@@ -16,5 +16,7 @@ algorithm = bfs
 # output_file=maze.txt
 # perfect=true
 # seed=42
+# animation=true
+# algorithm=kruskal
 # if you want to generate the same maze again, you must choose a number
 # for the seed and choose a perfect value between true and false

@@ -10,7 +10,6 @@ def main() -> None:
     """Entry point of the script that validates configuration and
     starts rendering."""
     config: dict[str, Any] = validate_config()
-    print(config)
     maze = MazeGenerator(
         config["height"],
         config["width"],
