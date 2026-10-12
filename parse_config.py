@@ -28,7 +28,7 @@ def v_width(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         if dict_graph["width"] < 1 or dict_graph["width"] > 500:
             print("'Width' should be between 1 and 500")
             print_error()
-    except Exception:
+    except (ValueError, TypeError):
         print("'Width' should be between 1 and 500")
         print_error()
 
@@ -40,7 +40,7 @@ def v_height(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         if dict_graph["height"] < 1 or dict_graph["height"] > 500:
             print("'Height' should be between 1 and 500")
             print_error()
-    except Exception:
+    except (ValueError, TypeError):
         print("'Height' should be between 1 and 500")
         print_error()
 
@@ -57,7 +57,7 @@ def v_perfect(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
             print("'Perfect' value should be 'True' or 'False'")
             print_error()
 
-    except Exception:
+    except (ValueError, TypeError):
         print("'Perfect' value should be 'True' or 'False'")
         print_error()
 
@@ -68,7 +68,7 @@ def v_output_file(
 
     try:
         dict_graph["output_file"] = str(dict_raw["output_file"])
-    except Exception:
+    except (ValueError, TypeError):
         print("'Output_file' should be a sting terminated with '.txt.'")
         print_error()
 
@@ -89,7 +89,7 @@ def v_seed(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         seed_value: int = int(raw_seed)
         dict_graph["seed"] = seed_value
         random.seed(seed_value)
-    except Exception:
+    except (ValueError, TypeError):
         print("'Seed' should be a number <int> or leave it empty like 'SEED='")
         print_error()
         return
@@ -104,7 +104,7 @@ def v_entry(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
             print("'Entry' should have only 2 integers numbers")
             print_error()
         dict_graph["entry"] = (int(parts[0]), int(parts[1]))
-    except Exception:
+    except (ValueError, TypeError):
         print("'Entry' should be in format <int,int> with no spaces")
         print_error()
 
@@ -125,7 +125,7 @@ def v_exit(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
             print("'Exit' should be equal or less than 'witdth'", end="")
             print("or 'height' and must be positive.")
             print_error()
-    except Exception:
+    except (ValueError, TypeError):
         print("'Exit' should be in format <int,int> with no spaces")
         print_error()
 
@@ -177,8 +177,10 @@ def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
     if raw_algorithm.lower() in ["bfs", "kruskal", "prim"]:
         dict_graph["algorithm"] = raw_algorithm
     else:
-        print("The 'algorithm' must be one of the",
-              "following: BFS, Kruskal or Prim. ")
+        print(
+            "The 'algorithm' must be one of the",
+            "following: BFS, Kruskal or Prim. ",
+        )
         print_error()
 
 
@@ -204,7 +206,7 @@ def validate_config() -> dict[str, Any]:
                 key = key.strip().lower()
                 value = value.strip()
                 dict_raw[key] = value
-    except Exception:
+    except (ValueError, TypeError):
         print("Be sure the name of the archive is 'config.txt'")
         print_error()
 
@@ -220,9 +222,16 @@ def validate_config() -> dict[str, Any]:
     v_algorithm(dict_raw, dict_graph)
 
     valid_keys: set[str] = {
-        "width", "height", "entry", "exit", "output_file", "perfect",
-        "seed", "animation", "algorithm"
-        }
+        "width",
+        "height",
+        "entry",
+        "exit",
+        "output_file",
+        "perfect",
+        "seed",
+        "animation",
+        "algorithm",
+    }
 
     if len(dict_graph.keys()) < 6 and len(dict_graph.keys()) > 9:
         print("Be sure to have all values like the example below")

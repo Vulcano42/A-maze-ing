@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Main module of the A-Maze-ing project.
 
@@ -14,7 +13,7 @@ from .kruskal import Kruskal
 from .prim import Prim
 from .maze_utils import Node
 import random
-from typing import Generator
+from typing import Generator, Any
 
 
 class MazeGenerator:
@@ -38,9 +37,15 @@ class MazeGenerator:
     """
 
     def __init__(
-        self, height: int, width: int, entry: tuple[int, int],
-        exit_maze: tuple[int, int], output_file: str,
-        seed: int | str = "random", perfect: bool = False, algorithm_str: str = "kruskal"
+        self,
+        height: int,
+        width: int,
+        entry: tuple[int, int],
+        exit_maze: tuple[int, int],
+        output_file: str,
+        seed: int | str = "random",
+        perfect: bool = False,
+        algorithm_str: str = "kruskal",
     ) -> None:
         self.height = height
         self.width = width
@@ -53,7 +58,7 @@ class MazeGenerator:
         self.path: list[Node] = []
         self.path_str = ""
         self.algorithm_str = algorithm_str
-        self.algorithm = None
+        self.algorithm: Generator[tuple[Node, Node], None, None] | None = None
 
     def build(self) -> None:
         """
@@ -66,7 +71,9 @@ class MazeGenerator:
         for _ in self.generate_maze():
             pass
 
-    def select_algorithm(self) -> Generator[tuple[Node, Node], None, None] | None:
+    def select_algorithm(
+        self,
+    ) -> Any:
         if self.algorithm_str.lower() == "prim" and self.perfect:
             return Prim.prim(self.maze, self.height, self.width)
         if self.algorithm_str.lower() == "prim" and not self.perfect:
@@ -74,19 +81,30 @@ class MazeGenerator:
         if self.algorithm_str.lower() == "kruskal" and self.perfect:
             return Kruskal.kruskal_perfect(self.maze, self.height, self.width)
         if self.algorithm_str.lower() == "kruskal" and not self.perfect:
-            return Kruskal.kruskal_imperfect(self.maze, self.height, self.width)
+            return Kruskal.kruskal_imperfect(
+                self.maze, self.height, self.width
+            )
         if self.algorithm_str.lower() == "bfs" and self.perfect:
             return BfsGenerator.bfs_perfect(
-                    self.maze, self.entry[1], self.entry[0],
-                    self.height, self.width
+                self.maze,
+                self.entry[1],
+                self.entry[0],
+                self.height,
+                self.width,
             )
         if self.algorithm_str.lower() == "bfs" and not self.perfect:
             return BfsGenerator.bfs_imperfect(
-                    self.maze, self.entry[1], self.entry[0],
-                    self.height, self.width
+                self.maze,
+                self.entry[1],
+                self.entry[0],
+                self.height,
+                self.width,
             )
+        raise ValueError("Invalid algorithm selected: {self.algorithm_str}")
 
-    def generate_maze(self) -> Generator[tuple, None, None]:
+    def generate_maze(
+        self,
+    ) -> Generator[tuple[Node, Node] | tuple[()], None, None]:
         """
         Executes grid construction, logo application,
          Kruskal's algorithm and BFS.
@@ -108,10 +126,13 @@ class MazeGenerator:
             if self.width > 14 and self.height > 14:
                 self.logo()
             yield ()
-        self.algorithm = self.select_algorithm()
+        algo_generator = self.select_algorithm()
+        if algo_generator is None:
+            raise ValueError("It is not possible to load a valid algorithm")
+        self.algorithm = algo_generator
         while True:
             try:
-                valor = next(self.algorithm)
+                valor = next(algo_generator)
                 yield valor
             except StopIteration:
                 break
@@ -196,29 +217,33 @@ class MazeGenerator:
     def validate_config(self) -> None:
         try:
             if not isinstance(self.width, int):
-                raise Exception("Type error: width")
+                raise TypeError("Type error: width")
             if not isinstance(self.height, int):
-                raise Exception("Type error: height")
+                raise TypeError("Type error: height")
             if not isinstance(self.perfect, bool):
-                raise Exception("Type error: perfect")
+                raise TypeError("Type error: perfect")
             if not isinstance(self.output_file, str):
-                raise Exception("Type error: output_file")
+                raise TypeError("Type error: output_file")
             if not isinstance(self.algorithm_str, str):
-                raise Exception("Type error: algorithm_str")
+                raise TypeError("Type error: algorithm_str")
+
             if not isinstance(self.seed, (int)) and self.seed != "random":
-                raise Exception("Invalid seed")
+                raise ValueError("Invalid seed")
             if not self.output_file.endswith(".txt"):
-                raise Exception("output_file incorret format")
+                raise ValueError("output_file incorret format")
+
             if not isinstance(self.entry[0], int):
-                raise Exception("Type error: entry")
+                raise TypeError("Type error: entry")
             if not isinstance(self.entry[1], int):
-                raise Exception("Type error: entry")
+                raise TypeError("Type error: entry")
             if not isinstance(self.exit_maze[0], int):
-                raise Exception("Type error: exit_maze")
+                raise TypeError("Type error: exit_maze")
             if not isinstance(self.exit_maze[1], int):
-                raise Exception("Type error: exit_maze")
+                raise TypeError("Type error: exit_maze")
+
             if len(self.entry) != 2 or len(self.exit_maze) != 2:
-                raise Exception("entry or exit invalid")
+                raise ValueError("entry or exit invalid")
+
             if not (
                 int(self.entry[0]) <= self.height
                 and int(self.entry[1]) <= self.width
@@ -226,13 +251,13 @@ class MazeGenerator:
                 and int(self.exit_maze[1]) <= self.width
                 and int(self.entry[0]) >= 0
                 and int(self.entry[1]) >= 0
-                and int(self.exit_maze[0])
+                and int(self.exit_maze[0]) >= 0
                 and int(self.exit_maze[1]) >= 0
             ):
-                raise Exception("Invalid coordinates")
+                raise ValueError("Invalid coordinates")
                 exit(1)
             if self.algorithm_str.lower() not in ["bfs", "kruskal", "prim"]:
-                raise Exception("Invalid algorithm")
-        except Exception as e:
+                raise ValueError("Invalid algorithm")
+        except (TypeError, ValueError) as e:
             print(e)
             exit(1)

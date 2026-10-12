@@ -1,12 +1,12 @@
 import random
-from typing import Generator
-
+from typing import Generator, Any
 from .maze_utils import break_walls_imperfect, Node
 
 
-
 class BfsGenerator:
-    """Generates perfect mazes utilizing Randomized Breadth-First Search (Prim's variant)."""
+    """Generates perfect mazes utilizing
+    Randomized Breadth-First Search (Prim's variant).
+    """
 
     @staticmethod
     def bfs_perfect(
@@ -14,8 +14,8 @@ class BfsGenerator:
         start_y: int,
         start_x: int,
         height: int,
-        width: int
-    ) -> Generator[tuple[Node, Node]]:
+        width: int,
+    ) -> Generator[tuple[Node, Node], None, None]:
         """
         Executes the maze generation step-by-step.
 
@@ -60,30 +60,39 @@ class BfsGenerator:
         visited: set[Node],
         frontier: list[tuple[Node, Node]],
         max_y: int,
-        max_x: int
+        max_x: int,
     ) -> None:
         """
-        Finds valid unvisited neighbors and adds them to the expansion frontier,
-        respecting fixed boundaries like logos.
+        Finds valid unvisited neighbors and adds them to the expansion
+        frontier, respecting fixed boundaries like logos.
         """
         y, x = node.cords
 
         if y > 0 and maze[y - 1][x] not in visited and not maze[y - 1][x].fix:
             frontier.append((node, maze[y - 1][x]))
 
-        if y < max_y - 1 and maze[y + 1][x] not in visited and not maze[y + 1][x].fix:
+        if (
+            y < max_y - 1
+            and maze[y + 1][x] not in visited
+            and not maze[y + 1][x].fix
+        ):
             frontier.append((node, maze[y + 1][x]))
 
         if x > 0 and maze[y][x - 1] not in visited and not maze[y][x - 1].fix:
             frontier.append((node, maze[y][x - 1]))
 
-        if x < max_x - 1 and maze[y][x + 1] not in visited and not maze[y][x + 1].fix:
+        if (
+            x < max_x - 1
+            and maze[y][x + 1] not in visited
+            and not maze[y][x + 1].fix
+        ):
             frontier.append((node, maze[y][x + 1]))
 
     @staticmethod
     def _break_wall(n1: Node, n2: Node) -> None:
         """
-        Removes the shared wall between two adjacent nodes using arithmetic operations.
+        Removes the shared wall between two adjacent nodes
+        using arithmetic operations.
         """
         y1, x1 = n1.cords
         y2, x2 = n2.cords
@@ -108,12 +117,11 @@ class BfsGenerator:
         start_y: int,
         start_x: int,
         height: int,
-        width: int
-    ) -> Generator[tuple[Node, Node]]:
+        width: int,
+    ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
         yield from BfsGenerator.bfs_perfect(
-                    maze, start_y, start_x,
-                    height, width
-            )
+            maze, start_y, start_x, height, width
+        )
         max_y = len(maze)
         max_x = len(maze[0])
         yield from break_walls_imperfect(maze, max_x, max_y)
@@ -126,8 +134,8 @@ class Bfs:
     def short_path(
         maze: list[list[Node]],
         entry: tuple[int, int],
-        exit_maze: tuple[int, int]
-    ) -> list[Node]:
+        exit_maze: tuple[int, int],
+    ) -> Any:
         """
         Calculates the shortest path between the maze entry and exit.
 
@@ -143,7 +151,7 @@ class Bfs:
         start_node: Node = maze[entry[1]][entry[0]]
         visited: set[Node] = {start_node}
 
-        queue: list = [(start_node, [start_node])]
+        queue: list[tuple[Node, list[Node]]] = [(start_node, [start_node])]
         max_y: int = len(maze)
         max_x: int = len(maze[0])
 

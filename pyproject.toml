@@ -17,3 +17,9 @@ license-files = ["LICENSE.md"]
 
 [tool.setuptools]
 packages = ["mazegen"]
+
+[tool.mypy]
+exclude = [
+    '^mlx-2\.2/',
+    '^maze_analyzer\.py$'
+]

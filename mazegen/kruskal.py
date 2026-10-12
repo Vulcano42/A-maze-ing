@@ -24,7 +24,7 @@ class Kruskal:
                 y.rank += 1
 
     @staticmethod
-    def find_set(x: Node) -> Node:
+    def find_set(x: Node | None) -> Node | None:
         """
         Finds the root of the set to which the node belongs, applying path
          compression.
@@ -35,12 +35,14 @@ class Kruskal:
         Returns:
             Node: The root node of the set containing x.
         """
+        if x is None:
+            return None
         if x.parent != x:
             x.parent = Kruskal.find_set(x.parent)
         return x.parent
 
     @staticmethod
-    def union(x: Node, y: Node) -> None:
+    def union(x: Node | None, y: Node | None) -> None:
         """
         Performs the union of the sets containing the two specified nodes.
 
@@ -48,12 +50,15 @@ class Kruskal:
             x (Node): The first node.
             y (Node): The second node.
         """
-        Kruskal.link(Kruskal.find_set(x), Kruskal.find_set(y))
+        root_x = Kruskal.find_set(x)
+        root_y = Kruskal.find_set(y)
+        if root_x is None or root_y is None:
+            return
+        Kruskal.link(root_x, root_y)
 
     @staticmethod
     def create_edge(
-        maze: list[list[Node]],
-        height: int, width: int
+        maze: list[list[Node]], height: int, width: int
     ) -> list[tuple[Node, Node]]:
         """
         Generates and shuffles all possible edges between neighboring cells.
@@ -66,7 +71,7 @@ class Kruskal:
         Returns:
             list[tuple[Node, Node]]: A randomized list of adjacent node pairs.
         """
-        adjacency_list: list = []
+        adjacency_list: list[tuple[Node, Node]] = []
         for i in range(height):
             for j in range(width - 1):
                 adjacency_list.append((maze[i][j], maze[i][j + 1]))
@@ -78,8 +83,7 @@ class Kruskal:
 
     @staticmethod
     def kruskal_perfect(
-        maze: list[list[Node]],
-        height: int, width: int
+        maze: list[list[Node]], height: int, width: int
     ) -> Generator[tuple[Node, Node], None, None]:
         """
         Generates a perfect maze (no loops and no isolated areas) using
@@ -97,8 +101,9 @@ class Kruskal:
         n = 0
         adjacency_list = Kruskal.create_edge(maze, height, width)
         for t in adjacency_list:
-            if (Kruskal.find_set(t[0]) != Kruskal.find_set(t[1]) and not
-                    (t[0].fix or t[1].fix)):
+            if Kruskal.find_set(t[0]) != Kruskal.find_set(t[1]) and not (
+                t[0].fix or t[1].fix
+            ):
                 if t[0].cords[0] > t[1].cords[0]:
                     t[0].wall = t[0].wall - 2**0
                     t[1].wall = t[1].wall - 2**2
@@ -117,9 +122,8 @@ class Kruskal:
 
     @staticmethod
     def kruskal_imperfect(
-        maze: list[list[Node]],
-        height: int, width: int
-    ) -> Generator[tuple[Node, Node], None, None]:
+        maze: list[list[Node]], height: int, width: int
+    ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
         """
         Generates an imperfect maze (with loops for game/Pac-Man mode).
 

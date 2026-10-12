@@ -1,4 +1,5 @@
 import random
+from typing import Generator
 
 
 class Node:
@@ -23,14 +24,14 @@ class Node:
             x (int): The x-coordinate (column) of the node.
             y (int): The y-coordinate (row) of the node.
         """
-        self.parent = self
+        self.parent: Node | None = self
         self.rank = 0
         self.wall = 15
         self.cords = (x, y)
         self.fix = False
 
 
-def verify(maze: list[list], max_x: int, max_y: int) -> bool:
+def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
     """
     Verifies if there are still dead ends that need to be
         opened in an imperfect maze.
@@ -51,15 +52,18 @@ def verify(maze: list[list], max_x: int, max_y: int) -> bool:
             ft_count += 1 if y + 1 < max_y and maze[y + 1][x].fix else 0
             ft_count += 1 if y - 1 > 0 and maze[y - 1][x].fix else 0
             if (
-                maze[y][x].wall.bit_count() == 3 and not
-                maze[y][x].fix and ft_count < 3
+                maze[y][x].wall.bit_count() == 3
+                and not maze[y][x].fix
+                and ft_count < 3
             ):
                 return True
 
     return False
 
 
-def break_walls_imperfect(maze, max_x, max_y):
+def break_walls_imperfect(
+    maze: list[list[Node]], max_x: int, max_y: int
+) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
     while verify(maze, max_x, max_y):
         for y in range(max_y):
             for x in range(max_x):

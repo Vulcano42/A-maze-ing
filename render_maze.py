@@ -1,19 +1,20 @@
 from typing import Any
 import mlx  # type: ignore
 from mazegen import MazeGenerator
+from mazegen.maze_utils import Node
 
 
 class Render:
     def __init__(
-            self, maze_obj: MazeGenerator, animation: bool = False
-            ) -> None:
+        self, maze_obj: MazeGenerator, animation: bool = False
+    ) -> None:
         self.colors = self.select_color()
         self.maze_obj: MazeGenerator = maze_obj
         self.show_path: bool = False
         self.mlx_obj = mlx.Mlx()
         self.mlx_ptr = None
         self.win_ptr = None
-        self.params: tuple = ()
+        self.params: Any = ()
         self.animation = animation
 
     class Color:
@@ -42,30 +43,47 @@ class Render:
         self.win_ptr = self.mlx_obj.mlx_new_window(
             self.mlx_ptr, width, height + 100, "a-maze-ing"
         )
-        self.params = (self.maze_obj, self.mlx_obj, self.mlx_ptr,
-                       self.win_ptr, width, height)
+        self.params = (
+            self.maze_obj,
+            self.mlx_obj,
+            self.mlx_ptr,
+            self.win_ptr,
+            width,
+            height,
+        )
         self.mlx_obj.mlx_hook(
             self.win_ptr, 33, 0, self.end_event, self.mlx_obj
         )
         self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, self.params)
         self.mlx_obj.mlx_string_put(
-            self.mlx_ptr, self.win_ptr, 0, height + 5, 0xFFFFFFFF,
-            "1. Regen new maze"
-            )
+            self.mlx_ptr,
+            self.win_ptr,
+            0,
+            height + 5,
+            0xFFFFFFFF,
+            "1. Regen new maze",
+        )
         self.mlx_obj.mlx_string_put(
-            self.mlx_ptr, self.win_ptr, 0, height + 25, 0xFFFFFFFF,
-            "2. Show/Hide path"
-            )
+            self.mlx_ptr,
+            self.win_ptr,
+            0,
+            height + 25,
+            0xFFFFFFFF,
+            "2. Show/Hide path",
+        )
         self.mlx_obj.mlx_string_put(
-            self.mlx_ptr, self.win_ptr, 0, height + 45, 0xFFFFFFFF,
-            "3. Change color"
-            )
+            self.mlx_ptr,
+            self.win_ptr,
+            0,
+            height + 45,
+            0xFFFFFFFF,
+            "3. Change color",
+        )
         self.mlx_obj.mlx_string_put(
-            self.mlx_ptr, self.win_ptr, 0, height + 65, 0xFFFFFFFF,
-            "4. Quit"
-            )
+            self.mlx_ptr, self.win_ptr, 0, height + 65, 0xFFFFFFFF, "4. Quit"
+        )
 
-    def init_animation(self):
+    def init_animation(self) -> None:
         gen = self.maze_obj.generate_maze()
         next(gen)
         self.render_maze()
@@ -73,7 +91,7 @@ class Render:
         while True:
             try:
                 value = next(gen)
-                if self.animation:
+                if self.animation and len(value) == 2:
                     self.animate_wall(value[0])
                     self.animate_wall(value[1])
             except StopIteration:
@@ -84,7 +102,7 @@ class Render:
         self.maze_obj.save_file()
         self.loop()
 
-    def loop(self):
+    def loop(self) -> None:
         self.mlx_obj.mlx_loop(self.mlx_ptr)
 
     def end(self) -> None:
@@ -92,7 +110,7 @@ class Render:
         self.mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         self.mlx_obj.mlx_loop_exit(self.mlx_ptr)
 
-    def end_event(self, mlx_obj):
+    def end_event(self, mlx_obj: Any) -> None:
         print("Encerrrando janela....")
         mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
         mlx_obj.mlx_loop_exit(self.mlx_ptr)
@@ -106,7 +124,7 @@ class Render:
         size_x: int,
         size_y: int,
         x: int,
-        y: int
+        y: int,
     ) -> None:
         for p_x in range(size_x):
             for p_y in range(size_y):
@@ -119,7 +137,7 @@ class Render:
         mlx_ptr: Any,
         win_ptr: Any,
         width: int,
-        height: int
+        height: int,
     ) -> None:
         pos_y = 0
         pos_x = 0
@@ -138,28 +156,45 @@ class Render:
                     )
                 if node.wall & 2 == 2:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, wall_color,
-                        20, 5, pos_x, pos_y + 20 - 5
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        wall_color,
+                        20,
+                        5,
+                        pos_x,
+                        pos_y + 20 - 5,
                     )
                 if node.wall & 4 == 4:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, wall_color,
-                        5, 20, pos_x + 20 - 5, pos_y + 0
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        wall_color,
+                        5,
+                        20,
+                        pos_x + 20 - 5,
+                        pos_y + 0,
                     )
                 if node.wall & 8 == 8:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, wall_color,
-                        20, 5, pos_x, pos_y
+                        mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y
                     )
                 if node.fix:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, ft_color,
-                        10, 10, pos_x + 5, pos_y + 5
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        ft_color,
+                        10,
+                        10,
+                        pos_x + 5,
+                        pos_y + 5,
                     )
                 pos_y += 15
             pos_x += 15
 
-    def animate_wall(self, node):
+    def animate_wall(self, node: Node) -> None:
         row, column = node.cords
         pos_x = row * 15
         pos_y = column * 15
@@ -169,54 +204,114 @@ class Render:
         ft_color = self.colors.color[2]
         if node.wall & 1 == 1:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color, 5, 20,
-                pos_x, pos_y
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                5,
+                20,
+                pos_x,
+                pos_y,
             )
         else:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color, 5, 10,
-                pos_x, pos_y + 5
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                10,
+                pos_x,
+                pos_y + 5,
             )
         if node.wall & 2 == 2:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color,
-                20, 5, pos_x, pos_y + 20 - 5
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                20,
+                5,
+                pos_x,
+                pos_y + 20 - 5,
             )
         else:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                10, 5, pos_x + 5, pos_y + 20 - 5
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                10,
+                5,
+                pos_x + 5,
+                pos_y + 20 - 5,
             )
 
         if node.wall & 4 == 4:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color,
-                5, 20, pos_x + 20 - 5, pos_y + 0
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                5,
+                20,
+                pos_x + 20 - 5,
+                pos_y + 0,
             )
         else:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                5, 10, pos_x + 20 - 5, pos_y + 5
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                10,
+                pos_x + 20 - 5,
+                pos_y + 5,
             )
         if node.wall & 8 == 8:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, wall_color,
-                20, 5, pos_x, pos_y
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                20,
+                5,
+                pos_x,
+                pos_y,
             )
         else:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                10, 5, pos_x + 5, pos_y
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                10,
+                5,
+                pos_x + 5,
+                pos_y,
             )
         if node.fix:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, ft_color,
-                10, 10, pos_x + 5, pos_y + 5
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                ft_color,
+                10,
+                10,
+                pos_x + 5,
+                pos_y + 5,
             )
         else:
             self.paint_block(
-                self.mlx_obj, self.mlx_ptr, self.win_ptr, main_color,
-                10, 10, pos_x + 5, pos_y + 5
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                10,
+                10,
+                pos_x + 5,
+                pos_y + 5,
             )
 
         def has_wall(r: int, c: int, bit: int) -> bool:
@@ -224,25 +319,73 @@ class Render:
                 return (self.maze_obj.maze[r][c].wall & bit) != 0
             return True
 
-        if not (has_wall(row, column, 1) or has_wall(row, column, 8) or
-                has_wall(row-1, column, 8) or has_wall(row, column-1, 1)):
-            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr,
-                             main_color, 5, 5, pos_x, pos_y)
+        if not (
+            has_wall(row, column, 1)
+            or has_wall(row, column, 8)
+            or has_wall(row - 1, column, 8)
+            or has_wall(row, column - 1, 1)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x,
+                pos_y,
+            )
 
-        if not (has_wall(row, column, 1) or has_wall(row, column, 2) or
-                has_wall(row-1, column, 2) or has_wall(row, column+1, 1)):
-            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr,
-                             main_color, 5, 5, pos_x, pos_y + 15)
+        if not (
+            has_wall(row, column, 1)
+            or has_wall(row, column, 2)
+            or has_wall(row - 1, column, 2)
+            or has_wall(row, column + 1, 1)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x,
+                pos_y + 15,
+            )
 
-        if not (has_wall(row, column, 4) or has_wall(row, column, 8) or
-                has_wall(row+1, column, 8) or has_wall(row, column-1, 4)):
-            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr,
-                             main_color, 5, 5, pos_x + 15, pos_y)
+        if not (
+            has_wall(row, column, 4)
+            or has_wall(row, column, 8)
+            or has_wall(row + 1, column, 8)
+            or has_wall(row, column - 1, 4)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x + 15,
+                pos_y,
+            )
 
-        if not (has_wall(row, column, 4) or has_wall(row, column, 2) or
-                has_wall(row+1, column, 2) or has_wall(row, column+1, 4)):
-            self.paint_block(self.mlx_obj, self.mlx_ptr, self.win_ptr,
-                             main_color, 5, 5, pos_x + 15, pos_y + 15)
+        if not (
+            has_wall(row, column, 4)
+            or has_wall(row, column, 2)
+            or has_wall(row + 1, column, 2)
+            or has_wall(row, column + 1, 4)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x + 15,
+                pos_y + 15,
+            )
 
         self.mlx_obj.mlx_do_sync(self.mlx_ptr)
 
@@ -255,12 +398,24 @@ class Render:
         exit_color = 0xFFCCAA09
 
         self.paint_block(
-            mlx, mlx_ptr, win_ptr, entry_color,
-            10, 10, entry_y * 15 + 5, entry_x * 15 + 5
+            mlx,
+            mlx_ptr,
+            win_ptr,
+            entry_color,
+            10,
+            10,
+            entry_y * 15 + 5,
+            entry_x * 15 + 5,
         )
         self.paint_block(
-            mlx, mlx_ptr, win_ptr, exit_color,
-            10, 10, exit_y * 15 + 5, exit_x * 15 + 5
+            mlx,
+            mlx_ptr,
+            win_ptr,
+            exit_color,
+            10,
+            10,
+            exit_y * 15 + 5,
+            exit_x * 15 + 5,
         )
 
     def render_path(self) -> None:
@@ -278,8 +433,14 @@ class Render:
 
             curr_y, curr_x = maze.path[i].cords
             self.paint_block(
-                mlx, mlx_ptr, win_ptr, path_color,
-                10, 10, curr_y * 15 + 5, curr_x * 15 + 5
+                mlx,
+                mlx_ptr,
+                win_ptr,
+                path_color,
+                10,
+                10,
+                curr_y * 15 + 5,
+                curr_x * 15 + 5,
             )
 
             if i < len(maze.path) - 1:
@@ -288,26 +449,50 @@ class Render:
 
                 if next_y < curr_y:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, path_color,
-                        5, 10, curr_y * 15, curr_x * 15 + 5
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        5,
+                        10,
+                        curr_y * 15,
+                        curr_x * 15 + 5,
                     )
                     y -= 1
                 if next_y > curr_y:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, path_color,
-                        5, 10, curr_y * 15 + 15, curr_x * 15 + 5
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        5,
+                        10,
+                        curr_y * 15 + 15,
+                        curr_x * 15 + 5,
                     )
                     y += 1
                 if next_x > curr_x:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, path_color,
-                        10, 5, curr_y * 15 + 5, curr_x * 15 + 15
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        10,
+                        5,
+                        curr_y * 15 + 5,
+                        curr_x * 15 + 15,
                     )
                     x += 1
                 if next_x < curr_x:
                     self.paint_block(
-                        mlx, mlx_ptr, win_ptr, path_color,
-                        10, 5, curr_y * 15 + 5, curr_x * 15
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        10,
+                        5,
+                        curr_y * 15 + 5,
+                        curr_x * 15,
                     )
                     x -= 1
 
@@ -318,7 +503,7 @@ class Render:
         self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, height, width)
         self.put_entry_exit()
 
-    def gere_key(self, key: int, params) -> None:
+    def gere_key(self, key: int, params: Any) -> None:
         maze, mlx, mlx_ptr, win_ptr, width, height = params
         if key == 49:
             maze.new_seed()

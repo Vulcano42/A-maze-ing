@@ -1,12 +1,12 @@
-width=20
-height=20
+width=15
+height=15
 entry=1,2
 exit=14,14
 output_file=maze.txt
 perfect=true
 seed = 42
-animation = true
-algorithm = bfs
+animation = false
+algorithm = kruskal
 
 # [recommended values]
 # width=20

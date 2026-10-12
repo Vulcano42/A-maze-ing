@@ -1,0 +1,10 @@
+[flake8]
+max-line-length = 79
+extend-ignore = ANN101
+exclude =
+    .git,
+    __pycache__,
+    env,
+    .mypy_cache,
+    mlx-2.2,
+    maze_analyzer.py
