@@ -6,7 +6,7 @@ output_file=maze.txt
 perfect=true
 seed = 42
 animation = false
-algorithm = kruskal
+algorithm = bfs
 
 # [recommended values]
 # width=20

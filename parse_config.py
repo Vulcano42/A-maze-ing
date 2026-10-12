@@ -28,7 +28,7 @@ def v_width(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         if dict_graph["width"] < 1 or dict_graph["width"] > 500:
             print("'Width' should be between 1 and 500")
             print_error()
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         print("'Width' should be between 1 and 500")
         print_error()
 
@@ -40,24 +40,24 @@ def v_height(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         if dict_graph["height"] < 1 or dict_graph["height"] > 500:
             print("'Height' should be between 1 and 500")
             print_error()
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         print("'Height' should be between 1 and 500")
         print_error()
 
 
 def v_perfect(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
-    try:
-        raw_perfect: str = dict_raw["perfect"].strip()
-        if raw_perfect.lower() == "true":
-            dict_graph["perfect"] = True
-        elif raw_perfect.lower() == "false":
-            dict_graph["perfect"] = False
-        else:
-            print("'Perfect' value should be 'True' or 'False'")
-            print_error()
+    raw_perfect: str = dict_raw.get("perfect", "").strip()
 
-    except (ValueError, TypeError):
+    if not raw_perfect:
+        dict_graph["perfect"] = True
+        return
+
+    if raw_perfect.lower() == "true":
+        dict_graph["perfect"] = True
+    elif raw_perfect.lower() == "false":
+        dict_graph["perfect"] = False
+    else:
         print("'Perfect' value should be 'True' or 'False'")
         print_error()
 
@@ -68,7 +68,7 @@ def v_output_file(
 
     try:
         dict_graph["output_file"] = str(dict_raw["output_file"])
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         print("'Output_file' should be a sting terminated with '.txt.'")
         print_error()
 
@@ -104,7 +104,7 @@ def v_entry(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
             print("'Entry' should have only 2 integers numbers")
             print_error()
         dict_graph["entry"] = (int(parts[0]), int(parts[1]))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         print("'Entry' should be in format <int,int> with no spaces")
         print_error()
 
@@ -125,7 +125,7 @@ def v_exit(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
             print("'Exit' should be equal or less than 'witdth'", end="")
             print("or 'height' and must be positive.")
             print_error()
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         print("'Exit' should be in format <int,int> with no spaces")
         print_error()
 
@@ -175,7 +175,7 @@ def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
         return
 
     if raw_algorithm.lower() in ["bfs", "kruskal", "prim"]:
-        dict_graph["algorithm"] = raw_algorithm
+        dict_graph["algorithm"] = raw_algorithm.lower()
     else:
         print(
             "The 'algorithm' must be one of the",
@@ -233,7 +233,7 @@ def validate_config() -> dict[str, Any]:
         "algorithm",
     }
 
-    if len(dict_graph.keys()) < 6 and len(dict_graph.keys()) > 9:
+    if len(dict_graph.keys()) <= 4 and len(dict_graph.keys()) > 9:
         print("Be sure to have all values like the example below")
         print_error()
 
