@@ -1,9 +1,25 @@
+"""Configuration file parsing and validation for the A-Maze-ing project.
+
+The configuration file is made of ``KEY=VALUE`` lines (blank lines and lines
+starting with '#' are ignored). This module reads it into a dictionary of raw
+strings, then validates and converts each value with a dedicated ``v_*``
+function that fills a dictionary of typed values.
+
+Every validation helper reports problems by printing a message and calling
+:func:`print_error`, which terminates the program with exit status 1.
+"""
+
 import sys
 import random
 from typing import Any
 
 
 def print_error() -> None:
+    """Print the expected configuration format and exit.
+
+    Raises:
+        SystemExit: Always, with status 1.
+    """
 
     error_msg: str = (
         "Error while reading config.txt"
@@ -22,6 +38,17 @@ def print_error() -> None:
 
 
 def v_width(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'width' value and store it as an integer.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "width" (int between 1 and 500).
+
+    Raises:
+        SystemExit: If the value is missing, not an integer, or outside the
+            range 1 to 500.
+    """
 
     try:
         dict_graph["width"] = int(dict_raw["width"])
@@ -34,6 +61,17 @@ def v_width(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def v_height(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'height' value and store it as an integer.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "height" (int between 1 and 500).
+
+    Raises:
+        SystemExit: If the value is missing, not an integer, or outside the
+            range 1 to 500.
+    """
 
     try:
         dict_graph["height"] = int(dict_raw["height"])
@@ -46,6 +84,19 @@ def v_height(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def v_perfect(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'perfect' value and store it as a boolean.
+
+    An empty or missing value defaults to True. Matching is
+    case-insensitive.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "perfect" (bool).
+
+    Raises:
+        SystemExit: If the value is neither 'true' nor 'false'.
+    """
 
     raw_perfect: str = dict_raw.get("perfect", "").strip()
 
@@ -65,6 +116,16 @@ def v_perfect(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 def v_output_file(
     dict_raw: dict[str, str], dict_graph: dict[str, Any]
 ) -> None:
+    """Validate the 'output_file' value and store it as a string.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "output_file" (str ending in '.txt').
+
+    Raises:
+        SystemExit: If the value is missing or does not end in '.txt'.
+    """
 
     try:
         dict_graph["output_file"] = str(dict_raw["output_file"])
@@ -78,6 +139,20 @@ def v_output_file(
 
 
 def v_seed(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'seed' value and seed the random number generator.
+
+    An empty or missing value stores the string "random" and leaves the
+    generator unseeded. Otherwise the integer is stored and also passed to
+    ``random.seed``.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "seed" (int or "random").
+
+    Raises:
+        SystemExit: If the value is not a valid integer.
+    """
 
     raw_seed: str = dict_raw.get("seed", "").strip()
 
@@ -96,6 +171,18 @@ def v_seed(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def v_entry(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'entry' value and store it as a pair of integers.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file;
+            the value must have the form "x,y".
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "entry" (tuple[int, int]).
+
+    Raises:
+        SystemExit: If the value is missing, does not contain exactly two
+            comma-separated parts, or the parts are not integers.
+    """
 
     try:
         raw_entry: str = dict_raw["entry"]
@@ -110,6 +197,18 @@ def v_entry(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def v_exit(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'exit' value and store it as a pair of integers.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file;
+            the value must have the form "x,y".
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "exit" (tuple[int, int]).
+
+    Raises:
+        SystemExit: If the value is missing, does not contain exactly two
+            comma-separated parts, or the parts are not integers.
+    """
 
     try:
         raw_exit: str = dict_raw["exit"]
@@ -131,6 +230,19 @@ def v_exit(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def compare_entry_exit(dict_graph: dict[str, Any]) -> None:
+    """Check entry and exit against the maze bounds and each other.
+
+    Must be called after width, height, entry and exit have been
+    validated.
+
+    Args:
+        dict_graph (dict[str, Any]): Validated configuration containing
+            "width", "height", "entry" and "exit".
+
+    Raises:
+        SystemExit: If the entry or the exit lies outside the maze, or if
+            both are in the same cell.
+    """
 
     width: int = dict_graph["width"]
     height: int = dict_graph["height"]
@@ -152,6 +264,19 @@ def compare_entry_exit(dict_graph: dict[str, Any]) -> None:
 
 
 def v_animation(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the optional 'animation' value and store it as a boolean.
+
+    An empty or missing value defaults to False. Matching is
+    case-insensitive.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "animation" (bool).
+
+    Raises:
+        SystemExit: If the value is neither 'true' nor 'false'.
+    """
     raw_animation: str = dict_raw.get("animation", "").strip()
 
     if not raw_animation:
@@ -168,6 +293,19 @@ def v_animation(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the optional 'algorithm' value and store it in lowercase.
+
+    An empty or missing value defaults to "kruskal". Matching is
+    case-insensitive.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "algorithm" ("bfs", "kruskal" or "prim").
+
+    Raises:
+        SystemExit: If the value is not one of the supported algorithms.
+    """
     raw_algorithm: str = dict_raw.get("algorithm", "").strip()
 
     if not raw_algorithm:
@@ -185,6 +323,27 @@ def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
 
 
 def validate_config() -> dict[str, Any]:
+    """Read the configuration file given on the command line and validate it.
+
+    The path is taken from ``sys.argv[1]``. Blank lines and lines starting
+    with '#' are skipped; every other line is split on the first '=' into a
+    lowercase key and a stripped value. Each value is then checked by the
+    corresponding ``v_*`` function and the entry/exit positions are
+    compared against the maze bounds. Finally, any unexpected key in the
+    result is rejected.
+
+    Returns:
+        dict[str, Any]: The validated configuration with the keys "width",
+        "height", "perfect", "seed", "output_file", "entry", "exit",
+        "animation" and "algorithm".
+
+    Raises:
+        SystemExit: If the number of command-line arguments is wrong or any
+            value is invalid.
+        Exception: If a line has nothing after the '=' sign (for example
+            'SEED='), since a bare ``Exception`` is raised and is not
+            caught by this function.
+    """
 
     if len(sys.argv) != 2:
         print("Wrong format for the program, please use:")

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""
-Main module of the A-Maze-ing project.
+"""Maze generation core of the A-Maze-ing project.
 
-This script is responsible for managing the cell data structure, running
-the maze generation algorithms (perfect and imperfect Kruskal), calculating
-the solution using breadth-first search (BFS), inserting the central '42' logo,
-saving the formatted result to a file, and starting visual rendering.
+This module provides :class:`MazeGenerator`, which manages the cell grid,
+runs the selected generation algorithm (BFS, Kruskal or Prim, in perfect or
+imperfect variants), stamps the central '42' logo, computes the shortest
+solution with a breadth-first search (BFS), and saves the formatted result
+to a text file.
 """
 
 from .bfs import Bfs, BfsGenerator
@@ -17,23 +17,29 @@ from typing import Generator, Any
 
 
 class MazeGenerator:
-    """
-    Manages the complete lifecycle of the maze (creation, solving, and saving).
+    """Manage the complete lifecycle of a maze: build, solve and save.
 
-    Args:
-        height (int): Maze height in number of cells.
-        width (int): Maze width in number of cells.
-        entry (tuple[int, int]): Entry coordinates (x, y).
-        exit_maze (tuple[int, int]): Exit coordinates (x, y).
-        seed (int | str): Pseudo-random number generator initialization.
-        perfect (bool): Defines whether the maze should be perfect (True)
-            or playable/imperfect (False).
-        output_file (str): Path to the generated output file.
+    The generator works step by step: :meth:`generate_maze` is a generator
+    that yields intermediate states so a renderer can animate the
+    construction, while :meth:`build` consumes it in one go.
 
     Attributes:
-        maze (list[list[Node]]): Grid containing the generated nodes.
-        path (list[Node]): List of nodes forming the solution path.
-        path_str (str): Textual representation of the path 'N', 'E', 'S', 'W'.
+        height (int): Maze height in number of cells (rows).
+        width (int): Maze width in number of cells (columns).
+        entry (tuple[int, int]): Entry coordinates as (x, y).
+        exit_maze (tuple[int, int]): Exit coordinates as (x, y).
+        seed (int | str): Seed of the pseudo-random number generator, or
+            the string "random" for a non-deterministic maze.
+        perfect (bool): True for a perfect maze (exactly one path between
+            any two cells), False for an imperfect one (with loops).
+        output_file (str): Path of the file written by :meth:`save_file`.
+        maze (list[list[Node]]): Grid of nodes, indexed as ``maze[row][col]``.
+        path (list[Node]): Nodes of the shortest path from entry to exit.
+        path_str (str): Solution path as a string of 'N', 'E', 'S', 'W'.
+        algorithm_str (str): Name of the algorithm: "bfs", "kruskal" or
+            "prim" (case-insensitive).
+        algorithm (Generator[tuple[Node, Node], None, None] | None): The
+            active algorithm generator, or None before generation starts.
     """
 
     def __init__(
@@ -47,6 +53,24 @@ class MazeGenerator:
         perfect: bool = False,
         algorithm_str: str = "kruskal",
     ) -> None:
+        """Initialize the generator with the maze configuration.
+
+        No validation or generation happens here; both are deferred to
+        :meth:`generate_maze`.
+
+        Args:
+            height (int): Maze height in number of cells.
+            width (int): Maze width in number of cells.
+            entry (tuple[int, int]): Entry coordinates (x, y).
+            exit_maze (tuple[int, int]): Exit coordinates (x, y).
+            output_file (str): Path of the output file; must end in '.txt'.
+            seed (int | str): Seed for the random number generator, or
+                "random" to leave it unseeded. Defaults to "random".
+            perfect (bool): Whether the maze must be perfect. Defaults to
+                False.
+            algorithm_str (str): Generation algorithm: "bfs", "kruskal" or
+                "prim". Defaults to "kruskal".
+        """
         self.height = height
         self.width = width
         self.entry = entry
@@ -61,12 +85,15 @@ class MazeGenerator:
         self.algorithm: Generator[tuple[Node, Node], None, None] | None = None
 
     def build(self) -> None:
-        """
-        Generates the maze completely in a single run.
+        """Generate the whole maze in a single run.
 
-        Consumes the generator from `generate_maze` ignoring intermediate
-        yields, useful for generating the full maze without step-by-step
-        visual rendering.
+        Consume the generator returned by :meth:`generate_maze`, discarding
+        every intermediate yield. Useful when no step-by-step rendering is
+        needed.
+
+        Raises:
+            ValueError: If the algorithm cannot be loaded, or if the entry
+                or exit overlaps the '42' logo.
         """
         for _ in self.generate_maze():
             pass
@@ -74,6 +101,21 @@ class MazeGenerator:
     def select_algorithm(
         self,
     ) -> Any:
+        """Return the generator for the configured algorithm and mode.
+
+        The choice depends on ``algorithm_str`` (case-insensitive) and on
+        ``perfect``. Must be called after the grid has been created.
+
+        Returns:
+            Generator: A generator that carves the maze one step at a time,
+            yielding pairs of nodes. It comes from ``Prim.prim``,
+            ``Prim.prim_imperfect``, ``Kruskal.kruskal_perfect``,
+            ``Kruskal.kruskal_imperfect``, ``BfsGenerator.bfs_perfect`` or
+            ``BfsGenerator.bfs_imperfect``.
+
+        Raises:
+            ValueError: If ``algorithm_str`` is not a supported algorithm.
+        """
         if self.algorithm_str.lower() == "prim" and self.perfect:
             return Prim.prim(self.maze, self.height, self.width)
         if self.algorithm_str.lower() == "prim" and not self.perfect:
@@ -105,14 +147,21 @@ class MazeGenerator:
     def generate_maze(
         self,
     ) -> Generator[tuple[Node, Node] | tuple[()], None, None]:
-        """
-        Executes grid construction, logo application,
-         Kruskal's algorithm and BFS.
+        """Create the grid, carve the maze and compute the solution.
+
+        Steps performed, in order: validate the configuration, seed the
+        random generator, build the node grid, stamp the '42' logo (only
+        when both dimensions exceed 14), run the selected algorithm, find
+        the shortest path with BFS, and convert it to ``path_str``.
 
         Yields:
-            tuple: Intermediate states of the maze generation for rendering.
-                   Yields an empty tuple after grid setup, and node pairs
-                   during Kruskal generation.
+            tuple: An empty tuple once the grid is set up (only when the
+            maze was not already created), followed by the ``(Node, Node)``
+            pairs produced by the algorithm at each step.
+
+        Raises:
+            ValueError: If the algorithm cannot be loaded, or if the entry
+                or exit overlaps the '42' logo.
         """
         self.validate_config()
         print("seed:", self.seed)
@@ -149,12 +198,15 @@ class MazeGenerator:
                 self.path_str += "E"
 
     def logo(self) -> None:
-        """
-        Positions the '42' logo in the center of the maze if dimensions allow.
+        """Mark the cells that form the '42' logo at the maze center.
+
+        Set the ``fix`` flag on the fixed cells so that generation
+        algorithms leave them untouched. Called only when the maze is
+        large enough to contain the logo.
 
         Raises:
-            ValueError: If the maze entry or exit overlaps with the fixed '42'
-             logo area.
+            ValueError: If the maze entry or exit overlaps the fixed '42'
+                logo area.
         """
         mid_h = int(self.height / 2)
         mid_w = int(self.width / 2)
@@ -185,19 +237,25 @@ class MazeGenerator:
             raise ValueError("Maze exit is the same as 42 logo")
 
     def new_seed(self) -> None:
-        """
-        Generates and applies a new random seed for the maze generation.
+        """Generate and apply a new random seed.
+
+        Pick an integer between 0 and 100000, store it in ``seed`` and
+        reseed the random number generator with it, so the next maze
+        differs from the previous one.
         """
         self.seed = random.randint(0, 100000)
         random.seed(self.seed)
 
     def save_file(self) -> None:
-        """
-        Writes the hexadecimal bit matrix, coordinates, and path to the
-         output file.
+        """Write the maze to ``output_file``.
 
-        Prints a success message upon completion, or an error message if an
-         OSError occurs.
+        The file contains, in order: one line per maze row with each cell's
+        wall bitmask as a hexadecimal digit, a blank line, the entry
+        coordinates ("x,y"), the exit coordinates ("x,y") and the solution
+        path string.
+
+        Print a success message when done. An ``OSError`` is caught and
+        reported with an error message instead of being propagated.
         """
         try:
             with open(self.output_file, "w") as file:
@@ -215,6 +273,20 @@ class MazeGenerator:
             print("Error while tring to save output file.")
 
     def validate_config(self) -> None:
+        """Check that every configuration attribute is valid.
+
+        Verify the types of ``width``, ``height``, ``perfect``,
+        ``output_file`` and ``algorithm_str``, that ``seed`` is an integer
+        or "random", that ``output_file`` ends in '.txt', that entry and
+        exit are pairs of integers within the allowed range, and that the
+        algorithm is one of "bfs", "kruskal" or "prim".
+
+        Errors are not propagated: any ``TypeError`` or ``ValueError`` is
+        printed and the program is terminated.
+
+        Raises:
+            SystemExit: With status 1 when any check fails.
+        """
         try:
             if not isinstance(self.width, int):
                 raise TypeError("Type error: width")
