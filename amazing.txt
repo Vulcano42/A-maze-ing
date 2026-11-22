@@ -1,0 +1,2209 @@
+===== ./a_maze_ing.py =====
+#!/usr/bin/env python3
+
+from typing import Any
+from mazegen import MazeGenerator
+from render_maze import Render
+from parse_config import validate_config
+
+
+def main() -> None:
+    """Entry point of the script that validates configuration and
+    starts rendering."""
+    config: dict[str, Any] = validate_config()
+    maze = MazeGenerator(
+        config["height"],
+        config["width"],
+        config["entry"],
+        config["exit"],
+        config["output_file"],
+        config["seed"],
+        config["perfect"],
+        config["algorithm"],
+    )
+    render = Render(maze, config["animation"])
+    render.start()
+    render.init_animation()
+
+
+if __name__ == "__main__":
+    main()
+
+===== ./mazegen/bfs.py =====
+"""Randomized frontier maze generation and BFS shortest-path solving."""
+
+import random
+from typing import Generator, Any
+from .maze_utils import break_walls_imperfect, Node
+
+
+class BfsGenerator:
+    """Generate mazes with a randomized frontier expansion (Prim's variant).
+
+    Despite the name, cells are taken from the frontier at random, not in
+    queue order.
+    """
+
+    @staticmethod
+    def bfs_perfect(
+        maze: list[list[Node]],
+        start_y: int,
+        start_x: int,
+        height: int,
+        width: int,
+    ) -> Generator[tuple[Node, Node], None, None]:
+        """Generate a perfect maze one wall removal at a time.
+
+        Starts from the center cell of the grid and repeatedly picks a
+        random edge from the frontier, connecting it if the target cell is
+        still unvisited.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            start_y: Starting row. Currently unused; the center is used.
+            start_x: Starting column. Currently unused; the center is used.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Yields:
+            The pair ``(current, neighbor)`` whose shared wall was removed.
+        """
+        start_node = maze[int(height / 2)][int(width / 2)]
+        visited: set[Node] = {start_node}
+        frontier: list[tuple[Node, Node]] = []
+        generate_edges: list[tuple[Node, Node]] = []
+
+        BfsGenerator._add_unvisited_neighbors(
+            start_node, maze, visited, frontier, height, width
+        )
+
+        while frontier:
+
+            current, neighbor = frontier.pop(random.randrange(len(frontier)))
+
+            if neighbor in visited:
+                continue
+
+            visited.add(neighbor)
+            BfsGenerator._break_wall(current, neighbor)
+            yield (current, neighbor)
+            generate_edges.append((current, neighbor))
+            BfsGenerator._add_unvisited_neighbors(
+                neighbor, maze, visited, frontier, height, width
+            )
+
+    @staticmethod
+    def _add_unvisited_neighbors(
+        node: Node,
+        maze: list[list[Node]],
+        visited: set[Node],
+        frontier: list[tuple[Node, Node]],
+        max_y: int,
+        max_x: int,
+    ) -> None:
+        """Add the unvisited neighbors of a node to the frontier.
+
+        Neighbors that belong to the fixed '42' logo are ignored.
+
+        Args:
+            node: Cell whose neighbors are examined.
+            maze: 2D matrix containing the maze nodes.
+            visited: Cells already part of the maze.
+            frontier: List of ``(from_node, to_node)`` edges, updated in
+                place.
+            max_y: Maze height in cells.
+            max_x: Maze width in cells.
+        """
+        y, x = node.cords
+
+        if y > 0 and maze[y - 1][x] not in visited and not maze[y - 1][x].fix:
+            frontier.append((node, maze[y - 1][x]))
+
+        if (
+            y < max_y - 1
+            and maze[y + 1][x] not in visited
+            and not maze[y + 1][x].fix
+        ):
+            frontier.append((node, maze[y + 1][x]))
+
+        if x > 0 and maze[y][x - 1] not in visited and not maze[y][x - 1].fix:
+            frontier.append((node, maze[y][x - 1]))
+
+        if (
+            x < max_x - 1
+            and maze[y][x + 1] not in visited
+            and not maze[y][x + 1].fix
+        ):
+            frontier.append((node, maze[y][x + 1]))
+
+    @staticmethod
+    def _break_wall(n1: Node, n2: Node) -> None:
+        """Remove the wall shared by two adjacent nodes.
+
+        Clears the matching bit in each node's wall bitmask.
+
+        Args:
+            n1: First node.
+            n2: Node adjacent to ``n1``.
+        """
+        y1, x1 = n1.cords
+        y2, x2 = n2.cords
+
+        if y1 > y2:
+            n1.wall -= 2**0
+            n2.wall -= 2**2
+        elif y1 < y2:
+            n1.wall -= 2**2
+            n2.wall -= 2**0
+
+        if x1 > x2:
+            n1.wall -= 2**3
+            n2.wall -= 2**1
+        elif x1 < x2:
+            n1.wall -= 2**1
+            n2.wall -= 2**3
+
+    @staticmethod
+    def bfs_imperfect(
+        maze: list[list[Node]],
+        start_y: int,
+        start_x: int,
+        height: int,
+        width: int,
+    ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
+        """Generate an imperfect maze (with loops).
+
+        Builds a perfect maze first, then removes extra walls from dead
+        ends to create loops.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            start_y: Starting row, forwarded to ``bfs_perfect``.
+            start_x: Starting column, forwarded to ``bfs_perfect``.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Yields:
+            The pair of nodes whose shared wall was just removed.
+        """
+        yield from BfsGenerator.bfs_perfect(
+            maze, start_y, start_x, height, width
+        )
+        max_y = len(maze)
+        max_x = len(maze[0])
+        yield from break_walls_imperfect(maze, max_x, max_y)
+
+
+class Bfs:
+    """Breadth-First Search solver for finding the shortest maze path."""
+
+    @staticmethod
+    def short_path(
+        maze: list[list[Node]],
+        entry: tuple[int, int],
+        exit_maze: tuple[int, int],
+    ) -> Any:
+        """Find the shortest path between the maze entry and exit.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            entry: Entry coordinates as (x, y), i.e. (column, row).
+            exit_maze: Exit coordinates as (x, y), i.e. (column, row).
+
+        Returns:
+            The ordered list of nodes from entry to exit, or an empty list
+            if no path exists.
+        """
+        start_node: Node = maze[entry[1]][entry[0]]
+        visited: set[Node] = {start_node}
+
+        queue: list[tuple[Node, list[Node]]] = [(start_node, [start_node])]
+        max_y: int = len(maze)
+        max_x: int = len(maze[0])
+
+        while queue:
+            current, path = queue.pop(0)
+
+            if current.cords == (exit_maze[1], exit_maze[0]):
+                return path
+
+            y, x = current.cords
+
+            if (current.wall & 1) == 0 and y > 0:
+                neighbor = maze[y - 1][x]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+            if (current.wall & 2) == 0 and x < max_x - 1:
+                neighbor = maze[y][x + 1]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+            if (current.wall & 4) == 0 and y < max_y - 1:
+                neighbor = maze[y + 1][x]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+            if (current.wall & 8) == 0 and x > 0:
+                neighbor = maze[y][x - 1]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+        return []
+
+===== ./mazegen/__init__.py =====
+from .mazegen import MazeGenerator
+
+__all__ = ["MazeGenerator"]
+
+===== ./mazegen/kruskal.py =====
+"""Maze generation with Kruskal's algorithm and a Union-Find structure."""
+
+import random
+from typing import Generator
+
+from .maze_utils import break_walls_imperfect, Node
+
+
+class Kruskal:
+    """Kruskal's algorithm for generating mazes as spanning trees."""
+
+    @staticmethod
+    def link(x: Node, y: Node) -> None:
+        """Merge two disjoint sets using union by rank.
+
+        Args:
+            x: Root node of the first set.
+            y: Root node of the second set.
+        """
+        if x.rank > y.rank:
+            y.parent = x
+        else:
+            x.parent = y
+            if x.rank == y.rank:
+                y.rank += 1
+
+    @staticmethod
+    def find_set(x: Node | None) -> Node | None:
+        """Return the root of the set containing a node.
+
+        Applies path compression while walking up the tree.
+
+        Args:
+            x: Node whose set root is wanted.
+
+        Returns:
+            The root node of the set containing ``x``, or None if ``x`` is
+            None.
+        """
+        if x is None:
+            return None
+        if x.parent != x:
+            x.parent = Kruskal.find_set(x.parent)
+        return x.parent
+
+    @staticmethod
+    def union(x: Node | None, y: Node | None) -> None:
+        """Merge the sets containing two nodes.
+
+        Does nothing if either root cannot be found.
+
+        Args:
+            x: First node.
+            y: Second node.
+        """
+        root_x = Kruskal.find_set(x)
+        root_y = Kruskal.find_set(y)
+        if root_x is None or root_y is None:
+            return
+        Kruskal.link(root_x, root_y)
+
+    @staticmethod
+    def create_edge(
+        maze: list[list[Node]], height: int, width: int
+    ) -> list[tuple[Node, Node]]:
+        """Build and shuffle every edge between neighboring cells.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Returns:
+            A randomly ordered list of horizontally and vertically adjacent
+            node pairs.
+        """
+        adjacency_list: list[tuple[Node, Node]] = []
+        for i in range(height):
+            for j in range(width - 1):
+                adjacency_list.append((maze[i][j], maze[i][j + 1]))
+        for i in range(width):
+            for j in range(height - 1):
+                adjacency_list.append((maze[j][i], maze[j + 1][i]))
+        random.shuffle(adjacency_list)
+        return adjacency_list
+
+    @staticmethod
+    def kruskal_perfect(
+        maze: list[list[Node]], height: int, width: int
+    ) -> Generator[tuple[Node, Node], None, None]:
+        """Generate a perfect maze (no loops, no isolated areas).
+
+        Iterates over the shuffled edges and removes the wall between two
+        cells whenever they are in different sets and neither belongs to the
+        '42' logo.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Yields:
+            The pair of nodes just connected, for step-by-step rendering.
+        """
+        n = 0
+        adjacency_list = Kruskal.create_edge(maze, height, width)
+        for t in adjacency_list:
+            if Kruskal.find_set(t[0]) != Kruskal.find_set(t[1]) and not (
+                t[0].fix or t[1].fix
+            ):
+                if t[0].cords[0] > t[1].cords[0]:
+                    t[0].wall = t[0].wall - 2**0
+                    t[1].wall = t[1].wall - 2**2
+                if t[0].cords[0] < t[1].cords[0]:
+                    t[0].wall = t[0].wall - 2**2
+                    t[1].wall = t[1].wall - 2**0
+                if t[0].cords[1] > t[1].cords[1]:
+                    t[0].wall = t[0].wall - 2**3
+                    t[1].wall = t[1].wall - 2**1
+                if t[0].cords[1] < t[1].cords[1]:
+                    t[0].wall = t[0].wall - 2**1
+                    t[1].wall = t[1].wall - 2**3
+                Kruskal.union(t[0], t[1])
+                n += 1
+                yield t
+
+    @staticmethod
+    def kruskal_imperfect(
+        maze: list[list[Node]], height: int, width: int
+    ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
+        """Generate an imperfect maze (with loops, for game mode).
+
+        Builds a perfect maze first, then removes extra walls from dead
+        ends to create loops.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Yields:
+            The pair of nodes whose shared wall was just removed.
+        """
+        yield from Kruskal.kruskal_perfect(maze, height, width)
+        max_y = len(maze)
+        max_x = len(maze[0])
+        yield from break_walls_imperfect(maze, max_x, max_y)
+
+===== ./mazegen/mazegen.py =====
+#!/usr/bin/env python3
+"""Maze generation core of the A-Maze-ing project.
+
+This module provides :class:`MazeGenerator`, which manages the cell grid,
+runs the selected generation algorithm (BFS, Kruskal or Prim, in perfect or
+imperfect variants), stamps the central '42' logo, computes the shortest
+solution with a breadth-first search (BFS), and saves the formatted result
+to a text file.
+"""
+
+from .bfs import Bfs, BfsGenerator
+from .kruskal import Kruskal
+from .prim import Prim
+from .maze_utils import Node
+import random
+from typing import Generator, Any
+
+
+class MazeGenerator:
+    """Manage the complete lifecycle of a maze: build, solve and save.
+
+    The generator works step by step: :meth:`generate_maze` is a generator
+    that yields intermediate states so a renderer can animate the
+    construction, while :meth:`build` consumes it in one go.
+
+    Attributes:
+        height (int): Maze height in number of cells (rows).
+        width (int): Maze width in number of cells (columns).
+        entry (tuple[int, int]): Entry coordinates as (x, y).
+        exit_maze (tuple[int, int]): Exit coordinates as (x, y).
+        seed (int | str): Seed of the pseudo-random number generator, or
+            the string "random" for a non-deterministic maze.
+        perfect (bool): True for a perfect maze (exactly one path between
+            any two cells), False for an imperfect one (with loops).
+        output_file (str): Path of the file written by :meth:`save_file`.
+        maze (list[list[Node]]): Grid of nodes, indexed as ``maze[row][col]``.
+        path (list[Node]): Nodes of the shortest path from entry to exit.
+        path_str (str): Solution path as a string of 'N', 'E', 'S', 'W'.
+        algorithm_str (str): Name of the algorithm: "bfs", "kruskal" or
+            "prim" (case-insensitive).
+        algorithm (Generator[tuple[Node, Node], None, None] | None): The
+            active algorithm generator, or None before generation starts.
+    """
+
+    def __init__(
+        self,
+        height: int,
+        width: int,
+        entry: tuple[int, int],
+        exit_maze: tuple[int, int],
+        output_file: str,
+        seed: int | str = "random",
+        perfect: bool = False,
+        algorithm_str: str = "kruskal",
+    ) -> None:
+        """Initialize the generator with the maze configuration.
+
+        No validation or generation happens here; both are deferred to
+        :meth:`generate_maze`.
+
+        Args:
+            height (int): Maze height in number of cells.
+            width (int): Maze width in number of cells.
+            entry (tuple[int, int]): Entry coordinates (x, y).
+            exit_maze (tuple[int, int]): Exit coordinates (x, y).
+            output_file (str): Path of the output file; must end in '.txt'.
+            seed (int | str): Seed for the random number generator, or
+                "random" to leave it unseeded. Defaults to "random".
+            perfect (bool): Whether the maze must be perfect. Defaults to
+                False.
+            algorithm_str (str): Generation algorithm: "bfs", "kruskal" or
+                "prim". Defaults to "kruskal".
+        """
+        self.height = height
+        self.width = width
+        self.entry = entry
+        self.exit_maze = exit_maze
+        self.seed = seed
+        self.perfect = perfect
+        self.output_file = output_file
+        self.maze: list[list[Node]] = []
+        self.path: list[Node] = []
+        self.path_str = ""
+        self.algorithm_str = algorithm_str
+        self.algorithm: Generator[tuple[Node, Node], None, None] | None = None
+
+    def build(self) -> None:
+        """Generate the whole maze in a single run.
+
+        Consume the generator returned by :meth:`generate_maze`, discarding
+        every intermediate yield. Useful when no step-by-step rendering is
+        needed.
+
+        Raises:
+            ValueError: If the algorithm cannot be loaded, or if the entry
+                or exit overlaps the '42' logo.
+        """
+        for _ in self.generate_maze():
+            pass
+
+    def select_algorithm(
+        self,
+    ) -> Any:
+        """Return the generator for the configured algorithm and mode.
+
+        The choice depends on ``algorithm_str`` (case-insensitive) and on
+        ``perfect``. Must be called after the grid has been created.
+
+        Returns:
+            Generator: A generator that carves the maze one step at a time,
+            yielding pairs of nodes. It comes from ``Prim.prim``,
+            ``Prim.prim_imperfect``, ``Kruskal.kruskal_perfect``,
+            ``Kruskal.kruskal_imperfect``, ``BfsGenerator.bfs_perfect`` or
+            ``BfsGenerator.bfs_imperfect``.
+
+        Raises:
+            ValueError: If ``algorithm_str`` is not a supported algorithm.
+        """
+        if self.algorithm_str.lower() == "prim" and self.perfect:
+            return Prim.prim(self.maze, self.height, self.width)
+        if self.algorithm_str.lower() == "prim" and not self.perfect:
+            return Prim.prim_imperfect(self.maze, self.height, self.width)
+        if self.algorithm_str.lower() == "kruskal" and self.perfect:
+            return Kruskal.kruskal_perfect(self.maze, self.height, self.width)
+        if self.algorithm_str.lower() == "kruskal" and not self.perfect:
+            return Kruskal.kruskal_imperfect(
+                self.maze, self.height, self.width
+            )
+        if self.algorithm_str.lower() == "bfs" and self.perfect:
+            return BfsGenerator.bfs_perfect(
+                self.maze,
+                self.entry[1],
+                self.entry[0],
+                self.height,
+                self.width,
+            )
+        if self.algorithm_str.lower() == "bfs" and not self.perfect:
+            return BfsGenerator.bfs_imperfect(
+                self.maze,
+                self.entry[1],
+                self.entry[0],
+                self.height,
+                self.width,
+            )
+        raise ValueError("Invalid algorithm selected: {self.algorithm_str}")
+
+    def generate_maze(
+        self,
+    ) -> Generator[tuple[Node, Node] | tuple[()], None, None]:
+        """Create the grid, carve the maze and compute the solution.
+
+        Steps performed, in order: validate the configuration, seed the
+        random generator, build the node grid, stamp the '42' logo (only
+        when both dimensions exceed 14), run the selected algorithm, find
+        the shortest path with BFS, and convert it to ``path_str``.
+
+        Yields:
+            tuple: An empty tuple once the grid is set up (only when the
+            maze was not already created), followed by the ``(Node, Node)``
+            pairs produced by the algorithm at each step.
+
+        Raises:
+            ValueError: If the algorithm cannot be loaded, or if the entry
+                or exit overlaps the '42' logo.
+        """
+        self.validate_config()
+        print("seed:", self.seed)
+        if not self.maze:
+            if self.seed != "random":
+                random.seed(self.seed)
+            self.maze = [
+                [Node(j, i) for i in range(self.width)]
+                for j in range(self.height)
+            ]
+            if self.width > 14 and self.height > 14:
+                self.logo()
+            yield ()
+        algo_generator = self.select_algorithm()
+        if algo_generator is None:
+            raise ValueError("It is not possible to load a valid algorithm")
+        self.algorithm = algo_generator
+        while True:
+            try:
+                valor = next(algo_generator)
+                yield valor
+            except StopIteration:
+                break
+
+        self.path = Bfs.short_path(self.maze, self.entry, self.exit_maze)
+        for i in range(len(self.path) - 1):
+            if self.path[i].cords[0] > self.path[i + 1].cords[0]:
+                self.path_str += "N"
+            if self.path[i].cords[0] < self.path[i + 1].cords[0]:
+                self.path_str += "S"
+            if self.path[i].cords[1] > self.path[i + 1].cords[1]:
+                self.path_str += "W"
+            if self.path[i].cords[1] < self.path[i + 1].cords[1]:
+                self.path_str += "E"
+
+    def logo(self) -> None:
+        """Mark the cells that form the '42' logo at the maze center.
+
+        Set the ``fix`` flag on the fixed cells so that generation
+        algorithms leave them untouched. Called only when the maze is
+        large enough to contain the logo.
+
+        Raises:
+            ValueError: If the maze entry or exit overlaps the fixed '42'
+                logo area.
+        """
+        mid_h = int(self.height / 2)
+        mid_w = int(self.width / 2)
+
+        self.maze[mid_h][mid_w - 1].fix = True
+        self.maze[mid_h][mid_w - 2].fix = True
+        self.maze[mid_h][mid_w - 3].fix = True
+        self.maze[mid_h - 1][mid_w - 3].fix = True
+        self.maze[mid_h - 2][mid_w - 3].fix = True
+        self.maze[mid_h + 1][mid_w - 1].fix = True
+        self.maze[mid_h + 2][mid_w - 1].fix = True
+        self.maze[mid_h][mid_w + 1].fix = True
+        self.maze[mid_h][mid_w + 2].fix = True
+        self.maze[mid_h][mid_w + 3].fix = True
+        self.maze[mid_h - 1][mid_w + 3].fix = True
+        self.maze[mid_h - 2][mid_w + 3].fix = True
+        self.maze[mid_h - 2][mid_w + 2].fix = True
+        self.maze[mid_h - 2][mid_w + 1].fix = True
+        self.maze[mid_h + 1][mid_w + 1].fix = True
+        self.maze[mid_h + 2][mid_w + 1].fix = True
+        self.maze[mid_h + 2][mid_w + 2].fix = True
+        self.maze[mid_h + 2][mid_w + 3].fix = True
+
+        if self.maze[self.entry[1]][self.entry[0]].fix:
+            raise ValueError("Maze entry is the same as 42 logo")
+
+        if self.maze[self.exit_maze[1]][self.exit_maze[0]].fix:
+            raise ValueError("Maze exit is the same as 42 logo")
+
+    def new_seed(self) -> None:
+        """Generate and apply a new random seed.
+
+        Pick an integer between 0 and 100000, store it in ``seed`` and
+        reseed the random number generator with it, so the next maze
+        differs from the previous one.
+        """
+        self.seed = random.randint(0, 100000)
+        random.seed(self.seed)
+
+    def save_file(self) -> None:
+        """Write the maze to ``output_file``.
+
+        The file contains, in order: one line per maze row with each cell's
+        wall bitmask as a hexadecimal digit, a blank line, the entry
+        coordinates ("x,y"), the exit coordinates ("x,y") and the solution
+        path string.
+
+        Print a success message when done. An ``OSError`` is caught and
+        reported with an error message instead of being propagated.
+        """
+        try:
+            with open(self.output_file, "w") as file:
+                for row in range(self.height):
+                    for node in range(self.width):
+                        file.write(f"{self.maze[row][node].wall:x}")
+                    file.write("\n")
+                file.write("\n")
+                file.write(f"{self.entry[0]},{self.entry[1]}\n")
+                file.write(f"{self.exit_maze[0]},{self.exit_maze[1]}\n")
+                file.write(self.path_str)
+            print(f"Maze succesfully save in: {self.output_file}")
+
+        except OSError:
+            print("Error while tring to save output file.")
+
+    def validate_config(self) -> None:
+        """Check that every configuration attribute is valid.
+
+        Verify the types of ``width``, ``height``, ``perfect``,
+        ``output_file`` and ``algorithm_str``, that ``seed`` is an integer
+        or "random", that ``output_file`` ends in '.txt', that entry and
+        exit are pairs of integers within the allowed range, and that the
+        algorithm is one of "bfs", "kruskal" or "prim".
+
+        Errors are not propagated: any ``TypeError`` or ``ValueError`` is
+        printed and the program is terminated.
+
+        Raises:
+            SystemExit: With status 1 when any check fails.
+        """
+        try:
+            if not isinstance(self.width, int):
+                raise TypeError("Type error: width")
+            if not isinstance(self.height, int):
+                raise TypeError("Type error: height")
+            if not isinstance(self.perfect, bool):
+                raise TypeError("Type error: perfect")
+            if not isinstance(self.output_file, str):
+                raise TypeError("Type error: output_file")
+            if not isinstance(self.algorithm_str, str):
+                raise TypeError("Type error: algorithm_str")
+
+            if not isinstance(self.seed, (int)) and self.seed != "random":
+                raise ValueError("Invalid seed")
+            if not self.output_file.endswith(".txt"):
+                raise ValueError("output_file incorret format")
+
+            if not isinstance(self.entry[0], int):
+                raise TypeError("Type error: entry")
+            if not isinstance(self.entry[1], int):
+                raise TypeError("Type error: entry")
+            if not isinstance(self.exit_maze[0], int):
+                raise TypeError("Type error: exit_maze")
+            if not isinstance(self.exit_maze[1], int):
+                raise TypeError("Type error: exit_maze")
+
+            if len(self.entry) != 2 or len(self.exit_maze) != 2:
+                raise ValueError("entry or exit invalid")
+
+            if not (
+                int(self.entry[0]) <= self.height
+                and int(self.entry[1]) <= self.width
+                and int(self.exit_maze[0]) <= self.height
+                and int(self.exit_maze[1]) <= self.width
+                and int(self.entry[0]) >= 0
+                and int(self.entry[1]) >= 0
+                and int(self.exit_maze[0]) >= 0
+                and int(self.exit_maze[1]) >= 0
+            ):
+                raise ValueError("Invalid coordinates")
+                exit(1)
+            if self.algorithm_str.lower() not in ["bfs", "kruskal", "prim"]:
+                raise ValueError("Invalid algorithm")
+        except (TypeError, ValueError) as e:
+            print(e)
+            exit(1)
+
+===== ./mazegen/maze_utils.py =====
+"""Shared helpers for the maze generators: the Node class and wall breaking."""
+
+import random
+from typing import Generator
+
+
+class Node:
+    """A single cell of the maze grid.
+
+    Attributes:
+        parent: Parent in the Union-Find forest (Kruskal) or in the spanning
+            tree (Prim). A node starts as its own parent.
+        rank: Union-Find rank (Kruskal) or the priority key in the heap
+            (Prim).
+        wall: Bitmask of the closed walls: 1 = North, 2 = East, 4 = South,
+            8 = West. A set bit means the wall is present.
+        cords: Position in the grid as (row, column).
+        fix: True if the cell belongs to the fixed '42' logo.
+    """
+
+    def __init__(self, x: int, y: int) -> None:
+        """Initialize a cell with all four walls closed.
+
+        Args:
+            x: Row index of the cell (stored as ``cords[0]``).
+            y: Column index of the cell (stored as ``cords[1]``).
+        """
+        self.parent: Node | None = self
+        self.rank = 0
+        self.wall = 15
+        self.cords = (x, y)
+        self.fix = False
+
+
+def verify(maze: list[list[Node]], max_x: int, max_y: int) -> bool:
+    """Check whether any dead end can still be opened.
+
+    A dead end is a non-logo cell with exactly three closed walls that is
+    not mostly surrounded by logo cells.
+
+    Args:
+        maze: 2D matrix containing the maze nodes.
+        max_x: Maze width in cells.
+        max_y: Maze height in cells.
+
+    Returns:
+        True if at least one openable dead end remains, False otherwise.
+    """
+    for y in range(max_y):
+        for x in range(max_x):
+            ft_count = 0
+            ft_count += 1 if x + 1 < max_x and maze[y][x + 1].fix else 0
+            ft_count += 1 if x - 1 >= 0 and maze[y][x - 1].fix else 0
+            ft_count += 1 if y + 1 < max_y and maze[y + 1][x].fix else 0
+            ft_count += 1 if y - 1 > 0 and maze[y - 1][x].fix else 0
+            if (
+                maze[y][x].wall.bit_count() == 3
+                and not maze[y][x].fix
+                and ft_count < 3
+            ):
+                return True
+
+    return False
+
+
+def break_walls_imperfect(
+    maze: list[list[Node]], max_x: int, max_y: int
+) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
+    """Open walls of dead ends to turn a perfect maze into an imperfect one.
+
+    Repeatedly scans the grid and, for each dead end, removes one wall
+    shared with a randomly chosen non-logo neighbor, until ``verify``
+    reports no more dead ends.
+
+    Args:
+        maze: 2D matrix containing the maze nodes.
+        max_x: Maze width in cells.
+        max_y: Maze height in cells.
+
+    Yields:
+        The pair of adjacent nodes whose shared wall was just removed.
+    """
+    while verify(maze, max_x, max_y):
+        for y in range(max_y):
+            for x in range(max_x):
+                options = []
+                if maze[y][x].wall.bit_count() == 3 and not maze[y][x].fix:
+                    if (
+                        maze[y][x].wall & 1 == 1
+                        and y > 0
+                        and y - 1 > 0
+                        and not maze[y - 1][x].fix
+                    ):
+                        options.append(maze[y - 1][x])
+                    if (
+                        maze[y][x].wall & 2 == 2
+                        and x < max_x - 1
+                        and not maze[y][x + 1].fix
+                    ):
+                        options.append(maze[y][x + 1])
+                    if (
+                        maze[y][x].wall & 4 == 4
+                        and y < max_y - 1
+                        and not maze[y + 1][x].fix
+                    ):
+                        options.append((maze[y + 1][x]))
+                    if (
+                        maze[y][x].wall & 8 == 8
+                        and x > 0
+                        and x - 1 >= 0
+                        and not maze[y][x - 1].fix
+                    ):
+                        options.append(maze[y][x - 1])
+                    if options:
+                        neighbor = random.choice(options)
+                        if maze[y][x].cords[0] > neighbor.cords[0]:
+                            maze[y][x].wall = maze[y][x].wall - 2**0
+                            neighbor.wall = neighbor.wall - 2**2
+                        if maze[y][x].cords[0] < neighbor.cords[0]:
+                            maze[y][x].wall = maze[y][x].wall - 2**2
+                            neighbor.wall = neighbor.wall - 2**0
+                        if maze[y][x].cords[1] > neighbor.cords[1]:
+                            maze[y][x].wall = maze[y][x].wall - 2**3
+                            neighbor.wall = neighbor.wall - 2**1
+                        if maze[y][x].cords[1] < neighbor.cords[1]:
+                            maze[y][x].wall = maze[y][x].wall - 2**1
+                            neighbor.wall = neighbor.wall - 2**3
+                        yield (maze[y][x], neighbor)
+
+===== ./mazegen/prim.py =====
+"""Maze generation with Prim's algorithm backed by a binary min-heap."""
+
+import random
+from typing import Generator, Any
+from .maze_utils import break_walls_imperfect, Node
+
+
+class Prim:
+    """Prim's algorithm for generating mazes, with a min-heap of nodes.
+
+    The heap is ordered by ``Node.rank``, which holds the lowest known edge
+    weight connecting the node to the growing tree.
+    """
+
+    @staticmethod
+    def parent(index: int) -> int:
+        """Return the heap index of the parent of ``index``."""
+        return int((index - 1) / 2)
+
+    @staticmethod
+    def left(index: int) -> int:
+        """Return the heap index of the left child of ``index``."""
+        return int(2 * index + 1)
+
+    @staticmethod
+    def right(index: int) -> int:
+        """Return the heap index of the right child of ``index``."""
+        return int(2 * index + 2)
+
+    @staticmethod
+    def min_heapify(heap: list[Node], index: int) -> None:
+        """Restore the min-heap property for the subtree rooted at ``index``.
+
+        Assumes both child subtrees already satisfy the property. Sinks the
+        node down, swapping with its smallest child while needed.
+
+        Args:
+            heap: Heap stored as a list of nodes.
+            index: Index of the subtree root to fix.
+        """
+        left = Prim.left(index)
+        right = Prim.right(index)
+        minimun = index
+        if (
+            left <= len(heap) - 1 and heap[left].rank < heap[index].rank
+        ):
+            minimun = left
+        if right <= len(heap) - 1 and heap[right].rank < heap[minimun].rank:
+            minimun = right
+        if minimun != index:
+            heap[index], heap[minimun] = heap[minimun], heap[index]
+            Prim.min_heapify(heap, minimun)
+
+    @staticmethod
+    def extract_min_heap(heap: list[Node]) -> Node:
+        """Remove and return the node with the smallest rank.
+
+        Args:
+            heap: Non-empty heap stored as a list of nodes.
+
+        Returns:
+            The node at the root of the heap.
+        """
+        heap[0], heap[len(heap) - 1] = heap[len(heap) - 1], heap[0]
+        minimun = heap.pop()
+        Prim.min_heapify(heap, 0)
+        return minimun
+
+    @staticmethod
+    def decrease_key(heap: list[Node], node: Node, key: int) -> None:
+        """Lower the rank of a node and move it up the heap.
+
+        Does nothing if ``key`` is greater than the current rank.
+
+        Args:
+            heap: Heap stored as a list of nodes.
+            node: Node whose rank will be lowered; it must be in the heap.
+            key: New rank value.
+        """
+        if key > node.rank:
+            return
+        node.rank = key
+        i = 0
+        while heap[i] != node:
+            i += 1
+        while i > 0 and heap[Prim.parent(i)].rank > heap[i].rank:
+            heap[Prim.parent(i)], heap[i] = heap[i], heap[Prim.parent(i)]
+            i = Prim.parent(i)
+
+    @staticmethod
+    def insert_heap(heap: list[Node], node: Node) -> None:
+        """Insert a node into the heap and rebuild the heap property.
+
+        Args:
+            heap: Heap stored as a list of nodes.
+            node: Node to insert.
+        """
+        heap.append(node)
+        i = int((len(heap) - 1) / 2)
+        while i >= 0:
+            Prim.min_heapify(heap, i)
+            i -= 1
+
+    @staticmethod
+    def create_edge(maze: list[list[Node]], height: int, width: int) -> Any:
+        """Build the weighted edge list between neighboring cells.
+
+        Edges touching a '42' logo cell are skipped. Each edge receives a
+        random weight between 1 and 10000.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Returns:
+            A list of ``(node_a, node_b, weight)`` tuples.
+        """
+        adjacency_list: Any = []
+        for i in range(height):
+            for j in range(width - 1):
+                if not maze[i][j].fix and not maze[i][j + 1].fix:
+                    adjacency_list.append(
+                        (maze[i][j], maze[i][j + 1], random.randint(1, 10000))
+                    )
+        for i in range(width):
+            for j in range(height - 1):
+                if not maze[j][i].fix and not maze[j + 1][i].fix:
+                    adjacency_list.append(
+                        (maze[j][i], maze[j + 1][i], random.randint(1, 10000))
+                    )
+        return adjacency_list
+
+    @staticmethod
+    def prim(
+        maze: list[list[Node]], height: int, width: int
+    ) -> Generator[tuple[Node, Node], None, None]:
+        """Generate a perfect maze using Prim's algorithm.
+
+        Builds a randomly weighted graph of the grid, starts from a random
+        node and repeatedly extracts the cheapest node from the heap,
+        removing the wall between it and its tree parent.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            width: Maze width in cells.
+
+        Yields:
+            The pair ``(node, parent)`` just connected, for step-by-step
+            rendering.
+        """
+        adjacency_list: list[tuple[Node, Node, int]] = Prim.create_edge(
+            maze, height, width
+        )
+        heap: list[Node] = []
+        graph: dict[Node, list[tuple[Node, int]]] = {
+            node: [] for line in maze for node in line
+        }
+
+        for u, v, weight in adjacency_list:
+            graph[u].append((v, weight))
+            graph[v].append((u, weight))
+
+        for line in maze:
+            for node in line:
+                node.rank = 10001
+                node.parent = None
+
+        init_node = random.choice(adjacency_list)[0]
+        init_node.rank = 0
+        for line in maze:
+            for node in line:
+                Prim.insert_heap(heap, node)
+
+        while heap:
+            minimun = Prim.extract_min_heap(heap)
+            if minimun.parent is not None:
+                if minimun.cords[0] > minimun.parent.cords[0]:
+                    minimun.wall -= 2**0
+                    minimun.parent.wall -= 2**2
+                if minimun.cords[0] < minimun.parent.cords[0]:
+                    minimun.wall -= 2**2
+                    minimun.parent.wall -= 2**0
+                if minimun.cords[1] > minimun.parent.cords[1]:
+                    minimun.wall -= 2**3
+                    minimun.parent.wall -= 2**1
+                if minimun.cords[1] < minimun.parent.cords[1]:
+                    minimun.wall -= 2**1
+                    minimun.parent.wall -= 2**3
+                yield (minimun, minimun.parent)
+
+            for neighbor, weight in graph[minimun]:
+                if neighbor in heap and weight < neighbor.rank:
+                    neighbor.parent = minimun
+                    Prim.decrease_key(heap, neighbor, weight)
+
+    @staticmethod
+    def prim_imperfect(
+        maze: list[list[Node]], height: int, widht: int
+    ) -> Generator[tuple[Node, Node] | tuple[Node], None, None]:
+        """Generate an imperfect maze (with loops) using Prim's algorithm.
+
+        Builds a perfect maze first, then removes extra walls from dead
+        ends to create loops.
+
+        Args:
+            maze: 2D matrix containing the maze nodes.
+            height: Maze height in cells.
+            widht: Maze width in cells.
+
+        Yields:
+            The pair of nodes whose shared wall was just removed.
+        """
+        yield from Prim.prim(maze, height, widht)
+        max_y = len(maze)
+        max_x = len(maze[0])
+        yield from break_walls_imperfect(maze, max_x, max_y)
+
+===== ./parse_config.py =====
+"""Configuration file parsing and validation for the A-Maze-ing project.
+
+The configuration file is made of ``KEY=VALUE`` lines (blank lines and lines
+starting with '#' are ignored). This module reads it into a dictionary of raw
+strings, then validates and converts each value with a dedicated ``v_*``
+function that fills a dictionary of typed values.
+
+Every validation helper reports problems by printing a message and calling
+:func:`print_error`, which terminates the program with exit status 1.
+"""
+
+import sys
+import random
+from typing import Any
+
+
+def print_error() -> None:
+    """Print the expected configuration format and exit.
+
+    Raises:
+        SystemExit: Always, with status 1.
+    """
+
+    error_msg: str = (
+        "Error while reading config.txt"
+        "\nPlease open the file and write the values in the format:"
+        "\nWIDTH=<int>0>"
+        "\nHEIGHT=<int>0>"
+        "\nENTRY=<int,int>"
+        "\nEXIT=<int,int>"
+        "\nOUTPUT_FILE=<*.txt>"
+        "\nPERFECT=<bool>"
+        "\nSEED=<int> or leave it blank"
+    )
+
+    print(error_msg)
+    exit(1)
+
+
+def v_width(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'width' value and store it as an integer.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "width" (int between 1 and 500).
+
+    Raises:
+        SystemExit: If the value is missing, not an integer, or outside the
+            range 1 to 500.
+    """
+
+    try:
+        dict_graph["width"] = int(dict_raw["width"])
+        if dict_graph["width"] < 1 or dict_graph["width"] > 500:
+            print("'Width' should be between 1 and 500")
+            print_error()
+    except (ValueError, TypeError, KeyError):
+        print("'Width' should be between 1 and 500")
+        print_error()
+
+
+def v_height(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'height' value and store it as an integer.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "height" (int between 1 and 500).
+
+    Raises:
+        SystemExit: If the value is missing, not an integer, or outside the
+            range 1 to 500.
+    """
+
+    try:
+        dict_graph["height"] = int(dict_raw["height"])
+        if dict_graph["height"] < 1 or dict_graph["height"] > 500:
+            print("'Height' should be between 1 and 500")
+            print_error()
+    except (ValueError, TypeError, KeyError):
+        print("'Height' should be between 1 and 500")
+        print_error()
+
+
+def v_perfect(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'perfect' value and store it as a boolean.
+
+    An empty or missing value defaults to True. Matching is
+    case-insensitive.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "perfect" (bool).
+
+    Raises:
+        SystemExit: If the value is neither 'true' nor 'false'.
+    """
+
+    raw_perfect: str = dict_raw.get("perfect", "").strip()
+
+    if not raw_perfect:
+        dict_graph["perfect"] = True
+        return
+
+    if raw_perfect.lower() == "true":
+        dict_graph["perfect"] = True
+    elif raw_perfect.lower() == "false":
+        dict_graph["perfect"] = False
+    else:
+        print("'Perfect' value should be 'True' or 'False'")
+        print_error()
+
+
+def v_output_file(
+    dict_raw: dict[str, str], dict_graph: dict[str, Any]
+) -> None:
+    """Validate the 'output_file' value and store it as a string.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "output_file" (str ending in '.txt').
+
+    Raises:
+        SystemExit: If the value is missing or does not end in '.txt'.
+    """
+
+    try:
+        dict_graph["output_file"] = str(dict_raw["output_file"])
+    except (ValueError, TypeError, KeyError):
+        print("'Output_file' should be a sting terminated with '.txt.'")
+        print_error()
+
+    if not dict_graph["output_file"].endswith(".txt"):
+        print("'Output_file' should be a sting terminated with '.txt.'")
+        print_error()
+
+
+def v_seed(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'seed' value and seed the random number generator.
+
+    An empty or missing value stores the string "random" and leaves the
+    generator unseeded. Otherwise the integer is stored and also passed to
+    ``random.seed``.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "seed" (int or "random").
+
+    Raises:
+        SystemExit: If the value is not a valid integer.
+    """
+
+    raw_seed: str = dict_raw.get("seed", "").strip()
+
+    if not raw_seed:
+        dict_graph["seed"] = "random"
+        return
+
+    try:
+        seed_value: int = int(raw_seed)
+        dict_graph["seed"] = seed_value
+        random.seed(seed_value)
+    except (ValueError, TypeError):
+        print("'Seed' should be a number <int> or leave it empty like 'SEED='")
+        print_error()
+        return
+
+
+def v_entry(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'entry' value and store it as a pair of integers.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file;
+            the value must have the form "x,y".
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "entry" (tuple[int, int]).
+
+    Raises:
+        SystemExit: If the value is missing, does not contain exactly two
+            comma-separated parts, or the parts are not integers.
+    """
+
+    try:
+        raw_entry: str = dict_raw["entry"]
+        parts = raw_entry.split(",")
+        if len(parts) != 2:
+            print("'Entry' should have only 2 integers numbers")
+            print_error()
+        dict_graph["entry"] = (int(parts[0]), int(parts[1]))
+    except (ValueError, TypeError, KeyError):
+        print("'Entry' should be in format <int,int> with no spaces")
+        print_error()
+
+
+def v_exit(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the 'exit' value and store it as a pair of integers.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file;
+            the value must have the form "x,y".
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "exit" (tuple[int, int]).
+
+    Raises:
+        SystemExit: If the value is missing, does not contain exactly two
+            comma-separated parts, or the parts are not integers.
+    """
+
+    try:
+        raw_exit: str = dict_raw["exit"]
+        parts = raw_exit.split(",")
+        if len(parts) != 2:
+            print("'Exit' should have only 2 integers numbers")
+            print_error()
+        dict_graph["exit"] = (int(parts[0]), int(parts[1]))
+        if (
+            dict_graph["exit"] > dict_graph["exit"]
+            or dict_graph["exit"] > dict_graph["exit"]
+        ):
+            print("'Exit' should be equal or less than 'witdth'", end="")
+            print("or 'height' and must be positive.")
+            print_error()
+    except (ValueError, TypeError, KeyError):
+        print("'Exit' should be in format <int,int> with no spaces")
+        print_error()
+
+
+def compare_entry_exit(dict_graph: dict[str, Any]) -> None:
+    """Check entry and exit against the maze bounds and each other.
+
+    Must be called after width, height, entry and exit have been
+    validated.
+
+    Args:
+        dict_graph (dict[str, Any]): Validated configuration containing
+            "width", "height", "entry" and "exit".
+
+    Raises:
+        SystemExit: If the entry or the exit lies outside the maze, or if
+            both are in the same cell.
+    """
+
+    width: int = dict_graph["width"]
+    height: int = dict_graph["height"]
+
+    entry_x, entry_y = dict_graph["entry"]
+    exit_x, exit_y = dict_graph["exit"]
+
+    if not (0 <= entry_x < width and 0 <= entry_y < height):
+        print("Entry is outside the maze, please choose another number.")
+        print_error()
+
+    if not (0 <= exit_x < width and 0 <= exit_y < height):
+        print("Exit is outside the maze, please choose another number.")
+        print_error()
+
+    if entry_x == exit_x and entry_y == exit_y:
+        print("Exit and entry are in the same spot, please change it.")
+        print_error()
+
+
+def v_animation(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the optional 'animation' value and store it as a boolean.
+
+    An empty or missing value defaults to False. Matching is
+    case-insensitive.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "animation" (bool).
+
+    Raises:
+        SystemExit: If the value is neither 'true' nor 'false'.
+    """
+    raw_animation: str = dict_raw.get("animation", "").strip()
+
+    if not raw_animation:
+        dict_graph["animation"] = False
+        return
+
+    if raw_animation.lower() == "true":
+        dict_graph["animation"] = True
+    elif raw_animation.lower() == "false":
+        dict_graph["animation"] = False
+    else:
+        print("'animation' value should be 'True' or 'False'")
+        print_error()
+
+
+def v_algorithm(dict_raw: dict[str, str], dict_graph: dict[str, Any]) -> None:
+    """Validate the optional 'algorithm' value and store it in lowercase.
+
+    An empty or missing value defaults to "kruskal". Matching is
+    case-insensitive.
+
+    Args:
+        dict_raw (dict[str, str]): Raw key/value pairs read from the file.
+        dict_graph (dict[str, Any]): Validated configuration; receives the
+            key "algorithm" ("bfs", "kruskal" or "prim").
+
+    Raises:
+        SystemExit: If the value is not one of the supported algorithms.
+    """
+    raw_algorithm: str = dict_raw.get("algorithm", "").strip()
+
+    if not raw_algorithm:
+        dict_graph["algorithm"] = "kruskal"
+        return
+
+    if raw_algorithm.lower() in ["bfs", "kruskal", "prim"]:
+        dict_graph["algorithm"] = raw_algorithm.lower()
+    else:
+        print(
+            "The 'algorithm' must be one of the",
+            "following: BFS, Kruskal or Prim. ",
+        )
+        print_error()
+
+
+def validate_config() -> dict[str, Any]:
+    """Read the configuration file given on the command line and validate it.
+
+    The path is taken from ``sys.argv[1]``. Blank lines and lines starting
+    with '#' are skipped; every other line is split on the first '=' into a
+    lowercase key and a stripped value. Each value is then checked by the
+    corresponding ``v_*`` function and the entry/exit positions are
+    compared against the maze bounds. Finally, any unexpected key in the
+    result is rejected.
+
+    Returns:
+        dict[str, Any]: The validated configuration with the keys "width",
+        "height", "perfect", "seed", "output_file", "entry", "exit",
+        "animation" and "algorithm".
+
+    Raises:
+        SystemExit: If the number of command-line arguments is wrong or any
+            value is invalid.
+        Exception: If a line has nothing after the '=' sign (for example
+            'SEED='), since a bare ``Exception`` is raised and is not
+            caught by this function.
+    """
+
+    if len(sys.argv) != 2:
+        print("Wrong format for the program, please use:")
+        print("python3 a_maze_ing.py config.txt")
+        exit(1)
+
+    config_path = sys.argv[1]
+    dict_graph: dict[str, Any] = {}
+    dict_raw: dict[str, str] = {}
+
+    try:
+        with open(config_path, "r") as f:
+            for line in f:
+                if line == "\n" or line.strip().startswith("#"):
+                    continue
+                if line.strip().index("=") + 1 == len(line.strip()):
+                    raise Exception
+                key, value = line.split("=", 1)
+                key = key.strip().lower()
+                value = value.strip()
+                dict_raw[key] = value
+    except (ValueError, TypeError):
+        print("Be sure the name of the archive is 'config.txt'")
+        print_error()
+
+    v_width(dict_raw, dict_graph)
+    v_height(dict_raw, dict_graph)
+    v_perfect(dict_raw, dict_graph)
+    v_seed(dict_raw, dict_graph)
+    v_output_file(dict_raw, dict_graph)
+    v_entry(dict_raw, dict_graph)
+    v_exit(dict_raw, dict_graph)
+    compare_entry_exit(dict_graph)
+    v_animation(dict_raw, dict_graph)
+    v_algorithm(dict_raw, dict_graph)
+
+    valid_keys: set[str] = {
+        "width",
+        "height",
+        "entry",
+        "exit",
+        "output_file",
+        "perfect",
+        "seed",
+        "animation",
+        "algorithm",
+    }
+
+    if len(dict_graph.keys()) <= 4 and len(dict_graph.keys()) > 9:
+        print("Be sure to have all values like the example below")
+        print_error()
+
+    for key in dict_graph.keys():
+        if key not in valid_keys:
+            print("Be sure to have all values like the example below")
+            print_error()
+
+    return dict_graph
+
+===== ./render_maze.py =====
+"""Graphical rendering of the A-Maze-ing project using the MLX library.
+
+This module provides :class:`Render`, which opens an MLX window, draws the
+maze (optionally animating its construction), highlights the entry, the exit
+and the solution path, and handles keyboard interaction.
+
+Drawing conventions used throughout the module:
+
+* Each cell occupies a 20x20 pixel square, and neighbouring cells are
+  spaced 15 pixels apart so that they share a 5-pixel wall.
+* The wall bitmask of a node uses bit 1 for the north wall, 2 for the east
+  wall, 4 for the south wall and 8 for the west wall.
+* ``paint_block`` receives its position as ``(x, y)`` where ``x`` is the
+  vertical (row) offset and ``y`` the horizontal (column) offset.
+"""
+
+from typing import Any
+import mlx  # type: ignore[unused-ignore, import-untyped]
+from mazegen import MazeGenerator
+from mazegen.maze_utils import Node
+
+
+class Render:
+    """Draw a maze in an MLX window and handle user interaction.
+
+    Attributes:
+        colors (Render.Color): Current node of the circular color-scheme
+            list; ``colors.color`` is a tuple of (background, wall, '42'
+            logo) colors.
+        maze_obj (MazeGenerator): The maze generator being displayed.
+        show_path (bool): Whether the solution path is currently shown.
+        mlx_obj (mlx.Mlx): The MLX library instance.
+        mlx_ptr (Any): MLX connection pointer, set by :meth:`start`.
+        win_ptr (Any): MLX window pointer, set by :meth:`start`.
+        params (Any): Tuple ``(maze_obj, mlx_obj, mlx_ptr, win_ptr, width,
+            height)`` shared with the drawing methods, set by :meth:`start`.
+        animation (bool): Whether the generation is animated step by step.
+    """
+
+    def __init__(
+        self, maze_obj: MazeGenerator, animation: bool = False
+    ) -> None:
+        """Initialize the renderer without opening any window.
+
+        Args:
+            maze_obj (MazeGenerator): The maze generator to display.
+            animation (bool): If True, animate the maze construction.
+                Defaults to False.
+        """
+        self.colors = self.select_color()
+        self.maze_obj: MazeGenerator = maze_obj
+        self.show_path: bool = False
+        self.mlx_obj = mlx.Mlx()
+        self.mlx_ptr = None
+        self.win_ptr = None
+        self.params: Any = ()
+        self.animation = animation
+
+    class Color:
+        """Node of a circular linked list of color schemes.
+
+        Attributes:
+            color (tuple[int, int, int]): Colors in 0xAARRGGBB format, in
+                the order (background, wall, '42' logo).
+            next (Render.Color): The next color scheme in the cycle. It
+                points to the node itself until linked.
+        """
+
+        def __init__(self, color: tuple[int, int, int]) -> None:
+            """Create a color-scheme node linked to itself.
+
+            Args:
+                color (tuple[int, int, int]): Background, wall and logo
+                    colors in 0xAARRGGBB format.
+            """
+            self.color = color
+            self.next = self
+
+    def select_color(self) -> Color:
+        """Build the circular list of color schemes.
+
+        Returns:
+            Render.Color: The first of four color schemes, linked so that
+            following ``next`` cycles through all of them and returns to
+            the start.
+        """
+        c_1 = self.Color((0xFF1E2956, 0xFFFC360E, 0xFF96C696))
+        c_2 = self.Color((0xFF2E2058, 0xFFFE7F14, 0xFF9DDB58))
+        c_3 = self.Color((0xFF2C1059, 0xFFFFFE21, 0xFFFF0109))
+        c_4 = self.Color((0xFF781359, 0xFF69B21B, 0xFFC9501B))
+        c_1.next = c_2
+        c_2.next = c_3
+        c_3.next = c_4
+        c_4.next = c_1
+        return c_1
+
+    def next_color(self) -> None:
+        """Switch to the next color scheme in the cycle."""
+        self.colors = self.colors.next
+
+    def start(self) -> None:
+        """Open the MLX window and register events and the help text.
+
+        Compute the window size from the maze dimensions, create the MLX
+        connection and window (with 100 extra pixels at the bottom for the
+        menu), store the shared ``params`` tuple, hook the window-close
+        event and the key handler, and print the list of keyboard
+        commands.
+        """
+        width: int = self.maze_obj.width * 10 + 5 * (self.maze_obj.width + 1)
+        height = self.maze_obj.height * 10 + 5 * (self.maze_obj.height + 1)
+        self.mlx_ptr = self.mlx_obj.mlx_init()
+        self.win_ptr = self.mlx_obj.mlx_new_window(
+            self.mlx_ptr, width, height + 100, "a-maze-ing"
+        )
+        self.params = (
+            self.maze_obj,
+            self.mlx_obj,
+            self.mlx_ptr,
+            self.win_ptr,
+            width,
+            height,
+        )
+        self.mlx_obj.mlx_hook(
+            self.win_ptr, 33, 0, self.end_event, self.mlx_obj
+        )
+        self.mlx_obj.mlx_key_hook(self.win_ptr, self.gere_key, self.params)
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr,
+            self.win_ptr,
+            0,
+            height + 5,
+            0xFFFFFFFF,
+            "1. Regen new maze",
+        )
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr,
+            self.win_ptr,
+            0,
+            height + 25,
+            0xFFFFFFFF,
+            "2. Show/Hide path",
+        )
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr,
+            self.win_ptr,
+            0,
+            height + 45,
+            0xFFFFFFFF,
+            "3. Change color",
+        )
+        self.mlx_obj.mlx_string_put(
+            self.mlx_ptr, self.win_ptr, 0, height + 65, 0xFFFFFFFF, "4. Quit"
+        )
+
+    def init_animation(self) -> None:
+        """Generate and draw the maze, then enter the event loop.
+
+        Consume the maze generator: draw the initial grid, and for each
+        generation step either animate the two affected nodes (when
+        ``animation`` is True) or simply keep generating. Without
+        animation the finished maze is drawn at the end. Finally the
+        entry and exit are marked, the maze is saved to its output file
+        and the MLX event loop is started.
+        """
+        gen = self.maze_obj.generate_maze()
+        next(gen)
+        self.render_maze()
+        self.mlx_obj.mlx_do_sync(self.mlx_ptr)
+        while True:
+            try:
+                value = next(gen)
+                if self.animation and len(value) == 2:
+                    self.animate_wall(value[0])
+                    self.animate_wall(value[1])
+            except StopIteration:
+                break
+        if not self.animation:
+            self.render_maze()
+        self.put_entry_exit()
+        self.maze_obj.save_file()
+        self.loop()
+
+    def loop(self) -> None:
+        """Start the MLX event loop; block until it is exited."""
+        self.mlx_obj.mlx_loop(self.mlx_ptr)
+
+    def end(self) -> None:
+        """Close the window and stop the MLX event loop."""
+        print("Closing window")
+        self.mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
+        self.mlx_obj.mlx_loop_exit(self.mlx_ptr)
+
+    def end_event(self, mlx_obj: Any) -> None:
+        """Handle the window-close event.
+
+        Registered as the MLX hook for the window's close button.
+
+        Args:
+            mlx_obj (Any): The MLX instance passed back by the hook, used
+                to destroy the window and leave the event loop.
+        """
+        print("Closing window")
+        mlx_obj.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
+        mlx_obj.mlx_loop_exit(self.mlx_ptr)
+
+    def paint_block(
+        self,
+        mlx: Any,
+        mlx_ptr: Any,
+        win_ptr: Any,
+        color: int,
+        size_x: int,
+        size_y: int,
+        x: int,
+        y: int,
+    ) -> None:
+        """Fill a rectangle of pixels with a single color.
+
+        Note that ``x`` and ``size_x`` refer to the vertical axis (rows)
+        and ``y`` and ``size_y`` to the horizontal axis (columns).
+
+        Args:
+            mlx (Any): The MLX instance.
+            mlx_ptr (Any): MLX connection pointer.
+            win_ptr (Any): MLX window pointer.
+            color (int): Fill color in 0xAARRGGBB format.
+            size_x (int): Rectangle extent along the vertical axis, in
+                pixels.
+            size_y (int): Rectangle extent along the horizontal axis, in
+                pixels.
+            x (int): Vertical offset of the top-left corner, in pixels.
+            y (int): Horizontal offset of the top-left corner, in pixels.
+        """
+        for p_x in range(size_x):
+            for p_y in range(size_y):
+                mlx.mlx_pixel_put(mlx_ptr, win_ptr, y + p_y, x + p_x, color)
+
+    def put_block_pixel(
+        self,
+        maze: list[list[Any]],
+        mlx: Any,
+        mlx_ptr: Any,
+        win_ptr: Any,
+        width: int,
+        height: int,
+    ) -> None:
+        """Draw the whole maze: background, walls and '42' logo cells.
+
+        Fill the background, then walk through every node and paint each
+        of its walls according to the wall bitmask, plus a small square
+        for the nodes belonging to the '42' logo.
+
+        Args:
+            maze (list[list[Any]]): Grid of nodes, indexed as
+                ``maze[row][col]``.
+            mlx (Any): The MLX instance.
+            mlx_ptr (Any): MLX connection pointer.
+            win_ptr (Any): MLX window pointer.
+            width (int): Pixel extent of the background along the vertical
+                axis (:meth:`render_maze` passes the maze pixel height).
+            height (int): Pixel extent of the background along the
+                horizontal axis (:meth:`render_maze` passes the maze pixel
+                width).
+        """
+        pos_y = 0
+        pos_x = 0
+        main_color = self.colors.color[0]
+        wall_color = self.colors.color[1]
+        ft_color = self.colors.color[2]
+        self.paint_block(
+            mlx, mlx_ptr, win_ptr, main_color, width, height, pos_x, pos_y
+        )
+        for line in maze:
+            pos_y = 0
+            for node in line:
+                if node.wall & 1 == 1:
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, wall_color, 5, 20, pos_x, pos_y
+                    )
+                if node.wall & 2 == 2:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        wall_color,
+                        20,
+                        5,
+                        pos_x,
+                        pos_y + 20 - 5,
+                    )
+                if node.wall & 4 == 4:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        wall_color,
+                        5,
+                        20,
+                        pos_x + 20 - 5,
+                        pos_y + 0,
+                    )
+                if node.wall & 8 == 8:
+                    self.paint_block(
+                        mlx, mlx_ptr, win_ptr, wall_color, 20, 5, pos_x, pos_y
+                    )
+                if node.fix:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        ft_color,
+                        10,
+                        10,
+                        pos_x + 5,
+                        pos_y + 5,
+                    )
+                pos_y += 15
+            pos_x += 15
+
+    def animate_wall(self, node: Node) -> None:
+        """Redraw a single node during the generation animation.
+
+        Repaint each of the four walls of the node (in wall color when
+        present, in background color when removed), the node interior
+        (logo color or background), and the four corner squares, which are
+        cleared only when none of the adjacent walls remains. The display
+        is synchronized at the end.
+
+        Args:
+            node (Node): The node to redraw; its ``cords`` attribute is
+                ``(row, column)``.
+        """
+        row, column = node.cords
+        pos_x = row * 15
+        pos_y = column * 15
+
+        main_color = self.colors.color[0]
+        wall_color = self.colors.color[1]
+        ft_color = self.colors.color[2]
+        if node.wall & 1 == 1:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                5,
+                20,
+                pos_x,
+                pos_y,
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                10,
+                pos_x,
+                pos_y + 5,
+            )
+        if node.wall & 2 == 2:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                20,
+                5,
+                pos_x,
+                pos_y + 20 - 5,
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                10,
+                5,
+                pos_x + 5,
+                pos_y + 20 - 5,
+            )
+
+        if node.wall & 4 == 4:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                5,
+                20,
+                pos_x + 20 - 5,
+                pos_y + 0,
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                10,
+                pos_x + 20 - 5,
+                pos_y + 5,
+            )
+        if node.wall & 8 == 8:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                wall_color,
+                20,
+                5,
+                pos_x,
+                pos_y,
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                10,
+                5,
+                pos_x + 5,
+                pos_y,
+            )
+        if node.fix:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                ft_color,
+                10,
+                10,
+                pos_x + 5,
+                pos_y + 5,
+            )
+        else:
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                10,
+                10,
+                pos_x + 5,
+                pos_y + 5,
+            )
+
+        def has_wall(r: int, c: int, bit: int) -> bool:
+            """Tell whether a node has a given wall.
+
+            Args:
+                r (int): Row of the node.
+                c (int): Column of the node.
+                bit (int): Wall bit to test (1, 2, 4 or 8).
+
+            Returns:
+                bool: True if the wall is set, or if the position lies
+                outside the maze (the border counts as a wall).
+            """
+            if 0 <= r < self.maze_obj.height and 0 <= c < self.maze_obj.width:
+                return (self.maze_obj.maze[r][c].wall & bit) != 0
+            return True
+
+        if not (
+            has_wall(row, column, 1)
+            or has_wall(row, column, 8)
+            or has_wall(row - 1, column, 8)
+            or has_wall(row, column - 1, 1)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x,
+                pos_y,
+            )
+
+        if not (
+            has_wall(row, column, 1)
+            or has_wall(row, column, 2)
+            or has_wall(row - 1, column, 2)
+            or has_wall(row, column + 1, 1)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x,
+                pos_y + 15,
+            )
+
+        if not (
+            has_wall(row, column, 4)
+            or has_wall(row, column, 8)
+            or has_wall(row + 1, column, 8)
+            or has_wall(row, column - 1, 4)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x + 15,
+                pos_y,
+            )
+
+        if not (
+            has_wall(row, column, 4)
+            or has_wall(row, column, 2)
+            or has_wall(row + 1, column, 2)
+            or has_wall(row, column + 1, 4)
+        ):
+            self.paint_block(
+                self.mlx_obj,
+                self.mlx_ptr,
+                self.win_ptr,
+                main_color,
+                5,
+                5,
+                pos_x + 15,
+                pos_y + 15,
+            )
+
+        self.mlx_obj.mlx_do_sync(self.mlx_ptr)
+
+    def put_entry_exit(self) -> None:
+        """Mark the maze entry and exit with colored squares.
+
+        The entry is drawn in blue and the exit in yellow, each as a
+        10x10 pixel square at the center of its cell. Coordinates are
+        read from the stored ``params`` tuple.
+        """
+        maze, mlx, mlx_ptr, win_ptr, width, height = self.params
+        entry_y, entry_x = maze.entry[1], maze.entry[0]
+        exit_y, exit_x = maze.exit_maze[1], maze.exit_maze[0]
+
+        entry_color = 0xFF0000FF
+        exit_color = 0xFFCCAA09
+
+        self.paint_block(
+            mlx,
+            mlx_ptr,
+            win_ptr,
+            entry_color,
+            10,
+            10,
+            entry_y * 15 + 5,
+            entry_x * 15 + 5,
+        )
+        self.paint_block(
+            mlx,
+            mlx_ptr,
+            win_ptr,
+            exit_color,
+            10,
+            10,
+            exit_y * 15 + 5,
+            exit_x * 15 + 5,
+        )
+
+    def render_path(self) -> None:
+        """Draw the solution path over the maze.
+
+        Paint a square on every node of ``maze.path`` and a connector
+        block between each pair of consecutive nodes, then redraw the
+        entry and exit markers on top. If no path has been generated, print
+        a message and return without drawing.
+        """
+        maze, mlx, mlx_ptr, win_ptr, width, height = self.params
+        path_color: int = 0xFF11A3FE
+
+        x: int = maze.entry[0]
+        y: int = maze.entry[1]
+
+        if not maze.path:
+            print("Path not generated")
+            return
+
+        for i in range(len(maze.path)):
+
+            curr_y, curr_x = maze.path[i].cords
+            self.paint_block(
+                mlx,
+                mlx_ptr,
+                win_ptr,
+                path_color,
+                10,
+                10,
+                curr_y * 15 + 5,
+                curr_x * 15 + 5,
+            )
+
+            if i < len(maze.path) - 1:
+
+                next_y, next_x = maze.path[i + 1].cords
+
+                if next_y < curr_y:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        5,
+                        10,
+                        curr_y * 15,
+                        curr_x * 15 + 5,
+                    )
+                    y -= 1
+                if next_y > curr_y:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        5,
+                        10,
+                        curr_y * 15 + 15,
+                        curr_x * 15 + 5,
+                    )
+                    y += 1
+                if next_x > curr_x:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        10,
+                        5,
+                        curr_y * 15 + 5,
+                        curr_x * 15 + 15,
+                    )
+                    x += 1
+                if next_x < curr_x:
+                    self.paint_block(
+                        mlx,
+                        mlx_ptr,
+                        win_ptr,
+                        path_color,
+                        10,
+                        5,
+                        curr_y * 15 + 5,
+                        curr_x * 15,
+                    )
+                    x -= 1
+
+        self.put_entry_exit()
+
+    def render_maze(self) -> None:
+        """Draw the full maze and the entry and exit markers."""
+        maze, mlx, mlx_ptr, win_ptr, width, height = self.params
+        self.put_block_pixel(maze.maze, mlx, mlx_ptr, win_ptr, height, width)
+        self.put_entry_exit()
+
+    def gere_key(self, key: int, params: Any) -> None:
+        """Handle a key press.
+
+        Supported keys:
+
+        * ``1`` (49): generate a new maze with a new seed.
+        * ``2`` (50) or key code 16: show or hide the solution path.
+        * ``3`` (51): switch to the next color scheme.
+        * ``4`` (52): quit.
+
+        Args:
+            key (int): Key code received from MLX.
+            params (Any): Tuple ``(maze_obj, mlx_obj, mlx_ptr, win_ptr,
+                width, height)`` registered in :meth:`start`.
+        """
+        maze, mlx, mlx_ptr, win_ptr, width, height = params
+        if key == 49:
+            maze.new_seed()
+            maze.maze = []
+            self.show_path = False
+            self.init_animation()
+
+        elif key == 50 or key == 16:
+            self.show_path = not self.show_path
+            self.paint_block(
+                mlx, mlx_ptr, win_ptr, 0x00000000, width, height, 0, 0
+            )
+            self.render_maze()
+            if self.show_path:
+                self.render_path()
+        elif key == 51:
+            self.next_color()
+            self.render_maze()
+            if self.show_path:
+                self.render_path()
+        elif key == 52:
+            self.end()
+

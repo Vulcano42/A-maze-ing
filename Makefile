@@ -19,7 +19,8 @@ run:
 	$(ENV) && $(PYTHON) $(SCRIPT) $(CONFIG)
 
 clean:
-	rm -rf __pycache__.py .mypy_cache build dist *.egg-info */__pycache__
+	rm -rf __pycache__ */__pycache__
+	rm -rf .mypy_cache build dist *.egg-info
 
 lint:
 	flake8 .
@@ -30,7 +31,7 @@ lint-strict:
 	mypy --strict .
 
 fclean: clean
-	rm -rf env 
+	rm -rf env
 	rm -rf maze.txt
 	rm -rf mlx-2.2/fedora mlx-2.2/src mlx-2.2/ubuntu
 	rm -rf dist mazen.egg-info

@@ -14,8 +14,8 @@ Drawing conventions used throughout the module:
   vertical (row) offset and ``y`` the horizontal (column) offset.
 """
 
-from typing import Any
-import mlx  # type: ignore[unused-ignore, import-untyped]
+from typing import Any, cast
+import mlx
 from mazegen import MazeGenerator
 from mazegen.maze_utils import Node
 
@@ -171,8 +171,9 @@ class Render:
             try:
                 value = next(gen)
                 if self.animation and len(value) == 2:
-                    self.animate_wall(value[0])
-                    self.animate_wall(value[1])
+                    pair = cast("tuple[Node, Node]", value)
+                    self.animate_wall(pair[0])
+                    self.animate_wall(pair[1])
             except StopIteration:
                 break
         if not self.animation:
